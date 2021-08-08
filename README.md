@@ -12,4 +12,4 @@ Detect Covid-19 infections by looking at images inspired by [this](https://www.k
 
 2. Useful links
 * [Project Team Overview Spreadsheet](https://docs.google.com/spreadsheets/d/1fKd46pd52rVkXatBlqeiiUwAFi61FhGjix9xZQaTq70/edit#gid=0)
-* [Projects Overview/ Proposals](* [Project proposals overview spreadsheet](https://docs.google.com/spreadsheets/d/e/2PACX-1vTEyLJoh5sZ76gfWRVs9luhqLqsgQbp9pRbAsUIiUvf0a7JY1KP6tvXEwRu7MNoNwWeRMiy6kkahsOf/pubhtml)
+* [Projects Overview/ Proposals](https://docs.google.com/spreadsheets/d/e/2PACX-1vTEyLJoh5sZ76gfWRVs9luhqLqsgQbp9pRbAsUIiUvf0a7JY1KP6tvXEwRu7MNoNwWeRMiy6kkahsOf/pubhtml)

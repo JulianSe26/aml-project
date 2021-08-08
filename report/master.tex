@@ -1,0 +1,115 @@
+\documentclass[
+	12pt,
+%	%BCOR=5mm,
+	DIV=14,
+	headinclude=on,
+	footinclude=off,
+	parskip=half,
+	bibliography=totoc,
+	listof=entryprefix,
+	toc=listof,
+	pointlessnumbers,
+	plainfootsepline]{scrreprt}
+	
+	%\usepackage[paperwidth=210mm, paperheight=245mm, top=25mm, bottom=20mm, left=25mm,	right=25mm,]{geometry}
+
+%\usepackage[onehalfspacing]{setspace}
+
+% Theorem
+
+%	Konfigurationsdatei einziehen
+\input{config}
+\addbibresource{bibliography.bib}
+
+
+\begin{document}
+
+% Disable listing with chapter numbers
+\counterwithout{lstlisting}{chapter}
+\counterwithout{equation}{chapter}
+% CHAPTER CHANGES
+\renewcommand*{\chapterheadstartvskip}{\vspace*{0cm}}
+\renewcommand*{\chapterheadendvskip}{\vspace{2cm}}
+
+
+\makeatletter
+\patchcmd{\scr@startchapter}{\if@openright\cleardoublepage\else\clearpage\fi}{}{}{}
+\makeatother
+
+\TitelDerArbeit{SIIM-FISABIO-RSNA COVID-19 Detection}
+\AutorDerArbeit{Tobias Richstein (3596554)}
+\ZweiterAutorDerArbeit{Julian Seibel (3601340)}
+\DritterAutorDerArbeit{Torben Krieger (MatNr)}
+\input{titlepage}
+
+\pagenumbering{Roman} % Römische Seitennummerierung
+\normalfont
+
+%--------------------------------
+% Verzeichnisse - nicht benötige Verzeichnisse bitte auskommentieren / löschen.
+%--------------------------------
+
+%Sperrvermerk
+%\input{Kapitel/sperrvermerk.tex}
+
+%\input{Kapitel/widmung.tex}
+
+%	Kurzfassung
+%\input{abstract}
+
+%	Inhaltsverzeichnis
+\tableofcontents
+
+%	Abbildungsverzeichnis
+%\listoffigures
+
+%	Tabellenverzeichnis
+%\listoftables
+
+%	Listingsverzeichnis
+ %\lstlistoflistings
+
+% 	Algorithmenverzeichnis
+ %\listofalgorithms
+
+% 	Abkürzungsverzeichnis (siehe Datei acronyms.tex!)
+\input{acronyms}
+
+%--------------------------------
+% Start des Textteils der Arbeit
+%--------------------------------
+\clearpage
+\ihead{\chaptername~\thechapter} % Neue Header-Definition
+\pagenumbering{arabic}  % Arabische Seitenzahlen
+
+%	Anleitungs-Datei anleitung.tex einziehen. Auf diese Weise sollten Sie versuchen, für jedes einzelne
+% Kapitel eine eigene Datei anzulegen und mittels input-Kommando einzuziehen.
+%\input{anleitung}
+\input{Kapitel/einfuehrung.tex}
+\newpage
+\input{Kapitel/architecture.tex}
+\newpage
+\input{Kapitel/comparison.tex}
+\newpage
+\input{Kapitel/conclusion.tex}
+%\input{Kapitel/mitigation.tex}
+%	Literaturverzeichnis
+\newpage
+\ihead{} % Neue Header-Definition
+\printbibliography [title=References]
+
+
+\cleardoublepage
+
+% Der Anhang beginnt hier - jedes Kapitel wird alphabetisch aufgezählt. (Anhang A, B usw.)
+
+\appendix
+\ihead{\appendixname~\thechapter} % Neue Header-Definition
+% appendix.tex einziehen
+%\input{Kapitel/anhangtitle.tex}
+%\input{appendix}
+
+% Ehrenwörtliche Erklärung ewerkl.tex einziehen
+%\input{ewerkl.tex}
+
+\end{document}

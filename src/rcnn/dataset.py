@@ -8,6 +8,8 @@ import logging
 from torchvision import transforms
 from PIL import Image
 
+# ADJUST TO YOUR NEEDS
+BASE_DIR = Path('../../nih')
 
 #logging.basicConfig(level=logging.DEBUG)
 
@@ -42,7 +44,8 @@ class NIHDataset(Dataset):
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ])
-        self.base_dir = Path('../../nih')
+
+        self.base_dir = BASE_DIR
         self.image_dir = self.base_dir.joinpath('data')
 
         self.image_dir.mkdir(parents=False, exist_ok=True)
@@ -50,6 +53,8 @@ class NIHDataset(Dataset):
         self.annotations = pd.read_csv(self.base_dir.joinpath('Data_Entry_2017.csv'))
 
         self.image_paths = sorted(self.base_dir.rglob("images*/*.png"))
+
+        self.classes = {item: idx for idx, item in enumerate(nih_classes)}
 
         if len(self.image_paths) > 0:
             print("Initializing dataset and unpacking folders. This might take up to 1 minute if not done previously")
@@ -63,12 +68,9 @@ class NIHDataset(Dataset):
 
     def __getitem__(self, index):
 
-        image = self.transform(Image.open(str(self.image_dir.joinpath(self.annotations.loc[index, "Image Index"]).resolve())).convert("L"))#.squeeze() #read_image(str(self.image_dir.joinpath(self.annotations.loc[index, "Image Index"]).resolve()))
-        print(image.shape)
+        image = self.transform(Image.open(str(self.image_dir.joinpath(self.annotations.loc[index, "Image Index"]).resolve())).convert("RGB"))
 
-        #Geht nicht
-        image = torch.stack([image, image, image], dim=0)
-        #print(nih_classes.index(self.annotations.loc[index, "Finding Labels"].split("|")[0]))
-        label = torch.FloatTensor([nih_classes.index(self.annotations.loc[index, "Finding Labels"].split("|")[0])])
+        labels = torch.zeros(len(nih_classes))
+        labels[[self.classes.get(x) for x  in self.annotations.loc[index, "Finding Labels"].split("|")]] = 1
 
-        return image, label
+        return image, labels

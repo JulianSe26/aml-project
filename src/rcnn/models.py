@@ -10,6 +10,7 @@ class BackboneModel(nn.Module):
         self.architecture = 'resnext101_32x8d'
         self.backbone = timm.create_model(self.architecture, pretrained=False, num_classes = 0)
         self.training = training
+        self.in_features = in_features
 
         self.fc1 = nn.Linear(in_features, 1024, bias=True)
         self.fc2 = nn.Linear(1024, num_classes, bias=True)
@@ -18,9 +19,11 @@ class BackboneModel(nn.Module):
     @autocast()
     def forward(self, x):
         x = self.backbone(x)
+        #print(x.shape)
         x = x.view(-1, self.in_features)
         x = self.fc1(x)
         x = F.relu(x)
         x = F.dropout(x, p=0.5, training=self.training)
         x = self.fc2(x)
+        x = F.softmax(x, dim=0)
         return x

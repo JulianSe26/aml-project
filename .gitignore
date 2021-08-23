@@ -427,3 +427,8 @@ data**/
 .DS_Store
 
 .token
+
+*.pt
+*.txt
+
+nih/

@@ -9,7 +9,7 @@ from torchvision import transforms
 from PIL import Image
 
 # ADJUST TO YOUR NEEDS
-BASE_DIR = Path('../../nih')
+BASE_DIR = Path('../../data/NIH')
 
 #logging.basicConfig(level=logging.DEBUG)
 

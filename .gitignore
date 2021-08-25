@@ -432,3 +432,5 @@ data**/
 *.txt
 
 nih/
+
+trace*.json

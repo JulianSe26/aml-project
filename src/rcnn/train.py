@@ -1,3 +1,4 @@
+from pathlib import Path
 from numpy.lib.function_base import average
 import torch
 from torch import optim
@@ -22,7 +23,12 @@ number_epochs = 35
 save_frequency = 2          # in epochs
 test_frequency = 1          # in epochs
 print_loss_frequency = 100  # in iterations
-'''============================================================'''    
+'''============================================================'''   
+
+'''=================Misc Configuration========================='''
+model_folder = "./models"
+checkpoint_folder = "./ckpt"
+'''============================================================''' 
 
 
 def calculate_metrics(predictions, targets, threshold=.5):
@@ -40,8 +46,14 @@ if __name__ == '__main__':
     test_len = len(dataset) - train_len
     train, test = random_split(dataset, [train_len, test_len])
 
+
+    # Create required directories
+    Path(model_folder).mkdir(exist_ok=True)
+    Path(checkpoint_folder).mkdir(exist_ok=True)
+
+
     train_loader = DataLoader(train, batch_size=24, shuffle=True, pin_memory=True, num_workers=12)
-    test_loader = DataLoader(test, batch_size=24, shuffle=True)
+    test_loader = DataLoader(test, batch_size=24, shuffle=True, pin_memory=True, num_workers=12)
 
     dataset = NIHDataset()
 
@@ -52,7 +64,7 @@ if __name__ == '__main__':
         device = torch.device("cpu")
         device_name = "cpu"
 
-    logging.info(f'Using device: {device_name}')
+    print(f'Using device: {device_name}')
 
     model = BackboneModel(training=True)
     model.to(device)
@@ -67,8 +79,6 @@ if __name__ == '__main__':
         output = p.key_averages().table(sort_by="self_cuda_time_total", row_limit=10)
         print(output)
         p.export_chrome_trace("trace_" + str(p.step_num) + ".json")
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-criterion = nn.BCEWithLogitsLoss()
 
 
 for epoch in range(number_epochs):
@@ -93,24 +103,24 @@ for epoch in range(number_epochs):
 
         losses = []
 
+        print(f"Training model on epoch {epoch} using lr={scheduler_cosine.get_last_lr()}")
+
         for batch_i, (imgs, labels) in enumerate(tqdm.tqdm(train_loader, desc="Training")):
-            print(f"Training model on epoch {epoch} using lr={scheduler_cosine.get_last_lr()}")
 
             imgs = imgs.to(device)
             labels = Variable(labels.to(device), requires_grad=False)
             with torch.cuda.amp.autocast():
-                    out = model(imgs)
-                    loss = criterion(out, labels)
-
-
-            losses.append(loss.item())
+                out = model(imgs)
+                loss = criterion(out, labels)
 
             scaler.scale(loss).backward()
+
             scaler.step(optimizer)
             scaler.update()
 
+            losses.append(loss.item())
+
             #p.step()
-            optimizer.step()
             optimizer.zero_grad()
 
 
@@ -140,10 +150,14 @@ for epoch in range(number_epochs):
                     print(test_results)
 
         if epoch % save_frequency == 0:
-            torch.save(model.state_dict(), f"./models/resnext101_32x8d_epoch_{epoch}.pt")
+            torch.save(model, f"./{model_folder}/resnext101_32x8d_epoch_{epoch}_full.pt")
+            torch.save(model.state_dict(), f"./{model_folder}/resnext101_32x8d_epoch_{epoch}.pt")
+            torch.save({"model": model.state_dict(),
+                        "optimizer": optimizer.state_dict(),
+                        "scaler": scaler.state_dict()}, f"./{checkpoint_folder}/resnext101_32x8d_epoch_{epoch}_ckpt.pt")
             np.save(f"loss_{epoch}.np", np.array(loss_per_epoch))
 
 
-del model
-del optimizer
-torch.cuda.empty_cache()
+    del model
+    del optimizer
+    torch.cuda.empty_cache()

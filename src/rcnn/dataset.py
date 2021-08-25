@@ -61,7 +61,6 @@ class NIHDataset(Dataset):
             for img in self.image_paths:
                 img.rename(self.image_dir.joinpath(img.name))
 
-        print(self.annotations.head())
 
     def __len__(self):
         return len(self.annotations)

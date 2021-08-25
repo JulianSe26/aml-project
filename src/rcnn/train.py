@@ -12,6 +12,7 @@ from torch.autograd import Variable
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 from models import BackboneModel
+import math
 
 #from torch.profiler import profile, record_function, ProfilerActivity
 
@@ -22,17 +23,20 @@ from models import BackboneModel
 number_epochs = 35
 save_frequency = 2          # in epochs
 test_frequency = 1          # in epochs
-print_loss_frequency = 100  # in iterations
+print_loss_frequency = 500  # in iterations
 '''============================================================'''   
 
 '''=================Misc Configuration========================='''
 model_folder = "./models"
+loss_folder = "./losses"
 checkpoint_folder = "./ckpt"
 '''============================================================''' 
 
 
 def calculate_metrics(predictions, targets, threshold=.5):
         predictions = np.array(predictions > threshold, dtype=float)
+        print(predictions)
+        print(targets)
         precision = precision_score(targets, predictions, average="macro")
         recall = recall_score(targets, predictions, average="macro")
         f1 = f1_score(targets, predictions, average="macro")
@@ -50,6 +54,7 @@ if __name__ == '__main__':
     # Create required directories
     Path(model_folder).mkdir(exist_ok=True)
     Path(checkpoint_folder).mkdir(exist_ok=True)
+    Path(loss_folder).mkdir(exist_ok=True)
 
 
     train_loader = DataLoader(train, batch_size=24, shuffle=True, pin_memory=True, num_workers=12)
@@ -69,7 +74,8 @@ if __name__ == '__main__':
     model = BackboneModel(training=True)
     model.to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    #optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9, nesterov=True)
     criterion = nn.BCEWithLogitsLoss().to(device)
 
     scaler = torch.cuda.amp.GradScaler()
@@ -94,21 +100,28 @@ for epoch in range(number_epochs):
     ) as p:'''
 
     # training scheduler
-    scheduler_cosine = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, number_epochs-1)
+    lf = lambda x: (((1 + math.cos(x * math.pi / number_epochs)) / 2) ** 1.0) * 0.95 + 0.05
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
+    scheduler.last_epoch = 0
+
     test_results_general = []
     loss_per_epoch = []
+    val_loss_per_epoch = []
 
-    for epoch in range(10):
+    for epoch in range(number_epochs):
         model.train()
 
         losses = []
 
-        print(f"Training model on epoch {epoch} using lr={scheduler_cosine.get_last_lr()}")
+        print(f"Training model on epoch {epoch} using lr={scheduler.get_last_lr()}")
 
         for batch_i, (imgs, labels) in enumerate(tqdm.tqdm(train_loader, desc="Training")):
 
             imgs = imgs.to(device)
             labels = Variable(labels.to(device), requires_grad=False)
+
+            optimizer.zero_grad()
+
             with torch.cuda.amp.autocast():
                 out = model(imgs)
                 loss = criterion(out, labels)
@@ -120,34 +133,39 @@ for epoch in range(number_epochs):
 
             losses.append(loss.item())
 
-            #p.step()
-            optimizer.zero_grad()
-
-
-            if batch_i % print_loss_frequency == 0:
-                print(np.mean(losses))
+            if batch_i % print_loss_frequency == 0 and batch_i != 0:
+                print(f'\ncurrent loss: {np.mean(losses)}, improvement to previous loss: {np.mean(losses[:-1]) - np.mean(losses)}')
+            elif batch_i == 0:
+                print(f'Start loss: {np.mean(losses)}')
 
         # Perform operations after every epoch
-        scheduler_cosine.step()
+        if epoch % 5 == 0:
+             scheduler.step()
 
 
         loss_per_epoch.append(np.mean(losses))
 
         if epoch % test_frequency == 0:
-                print("Starting Testing..")
                 model.eval()
-                with torch.no_grad():
+                with torch.no_grad(), torch.cuda.amp.autocast():
                     predictions = []
                     targets = []
+                    validation_loss = []
                     for test_i, (imgs, labels) in enumerate(tqdm.tqdm(test_loader, desc="Testing")):
                         imgs = imgs.to(device)
+                        labels = Variable(labels.to(device), requires_grad=False)
                         batch_prediction = model(imgs)
+                        val_loss = criterion(batch_prediction, labels)
+                        validation_loss.append(val_loss.item())
                         predictions.extend(batch_prediction.cpu().numpy())
                         targets.extend(labels.cpu().numpy())
                     
                     test_results = calculate_metrics(np.array(predictions), np.array(targets))
                     test_results_general.append(test_results)
-                    print(test_results)
+                    val_loss_per_epoch.append(np.mean(validation_loss))
+                    print(f'\nValidation loss: {val_loss_per_epoch[-1]}')
+                    print(f'\n{test_results}')
+                    
 
         if epoch % save_frequency == 0:
             torch.save(model, f"./{model_folder}/resnext101_32x8d_epoch_{epoch}_full.pt")
@@ -155,7 +173,8 @@ for epoch in range(number_epochs):
             torch.save({"model": model.state_dict(),
                         "optimizer": optimizer.state_dict(),
                         "scaler": scaler.state_dict()}, f"./{checkpoint_folder}/resnext101_32x8d_epoch_{epoch}_ckpt.pt")
-            np.save(f"loss_{epoch}.np", np.array(loss_per_epoch))
+            np.save(f"{loss_folder}/resnext101_32x8d_train_loss_{epoch}.np", np.array(loss_per_epoch))
+            np.save(f"{loss_folder}/resnext101_32x8d_val_loss_{epoch}.np", np.array(val_loss_per_epoch))
 
 
     del model

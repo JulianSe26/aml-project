@@ -7,10 +7,12 @@ from torch.utils import data
 from torch.utils.data import DataLoader, random_split
 from dataset import NIHDataset
 import logging
-import tqdm
+from tqdm import tqdm
 from torch.autograd import Variable
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
+from sklearn.model_selection import train_test_split
+import pandas as pd
 from models import BackboneModel
 import math
 
@@ -23,10 +25,13 @@ import math
 number_epochs = 35
 save_frequency = 2          # in epochs
 test_frequency = 1          # in epochs
+scheduler_frequency = 2     # in epochs
 print_loss_frequency = 500  # in iterations
 '''============================================================'''   
 
 '''=================Misc Configuration========================='''
+# ADJUST TO YOUR NEEDS
+base_data_dir = '../../data/NIH'
 model_folder = "./models"
 loss_folder = "./losses"
 checkpoint_folder = "./ckpt"
@@ -44,12 +49,11 @@ def calculate_metrics(predictions, targets, threshold=.5):
         return {"accuracy": accuarcy, "f1": f1, "recall": recall, "precision": precision}
 
 if __name__ == '__main__':
-    dataset = NIHDataset()
 
-    train_len = int(.8 * len(dataset))
-    test_len = len(dataset) - train_len
-    train, test = random_split(dataset, [train_len, test_len])
+    train_data, test_data = train_test_split(pd.read_csv(Path(base_data_dir).joinpath('Data_Entry_2017.csv')), train_size=.8, shuffle=True)
 
+    train = NIHDataset(base_dir=base_data_dir, data=train_data)
+    test = NIHDataset(base_dir=base_data_dir, data=test_data, train=False)
 
     # Create required directories
     Path(model_folder).mkdir(exist_ok=True)
@@ -57,8 +61,8 @@ if __name__ == '__main__':
     Path(loss_folder).mkdir(exist_ok=True)
 
 
-    train_loader = DataLoader(train, batch_size=24, shuffle=True, pin_memory=True, num_workers=12)
-    test_loader = DataLoader(test, batch_size=24, shuffle=True, pin_memory=True, num_workers=12)
+    train_loader = DataLoader(train, batch_size=32, shuffle=True, pin_memory=True, num_workers=16)
+    test_loader = DataLoader(test, batch_size=32, shuffle=True, pin_memory=True, num_workers=16)
 
     if torch.cuda.is_available:
         device = torch.device("cuda")
@@ -69,7 +73,7 @@ if __name__ == '__main__':
 
     print(f'Using device: {device_name}')
 
-    model = BackboneModel(training=True)
+    model = BackboneModel()
     model.to(device)
 
     #optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
@@ -106,14 +110,14 @@ for epoch in range(number_epochs):
     loss_per_epoch = []
     val_loss_per_epoch = []
 
-    for epoch in range(number_epochs):
+    for epoch in range(1, number_epochs+1):
         model.train()
 
         losses = []
 
         print(f"Training model on epoch {epoch} using lr={scheduler.get_last_lr()}")
 
-        for batch_i, (imgs, labels) in enumerate(tqdm.tqdm(train_loader, desc="Training")):
+        for batch_i, (imgs, labels) in enumerate(tqdm(train_loader, desc="Training")):
 
             imgs = imgs.to(device)
             labels = Variable(labels.to(device), requires_grad=False)
@@ -132,12 +136,12 @@ for epoch in range(number_epochs):
             losses.append(loss.item())
 
             if batch_i % print_loss_frequency == 0 and batch_i != 0:
-                print(f'\ncurrent loss: {np.mean(losses)}, improvement to previous loss: {np.mean(losses[:-1]) - np.mean(losses)}')
+                tqdm.write(f'Epoch: {epoch}, step: {batch_i}; current loss: {np.mean(losses)}, improvement to previous loss: {np.mean(losses[:-print_loss_frequency]) - np.mean(losses[-print_loss_frequency:])}')
             elif batch_i == 0:
-                print(f'Start loss: {np.mean(losses)}')
+                tqdm.write(f'Start loss: {np.mean(losses)}')
 
         # Perform operations after every epoch
-        if epoch % 5 == 0:
+        if epoch % scheduler_frequency == 0:
              scheduler.step()
 
 
@@ -149,7 +153,7 @@ for epoch in range(number_epochs):
                     predictions = []
                     targets = []
                     validation_loss = []
-                    for test_i, (imgs, labels) in enumerate(tqdm.tqdm(test_loader, desc="Testing")):
+                    for test_i, (imgs, labels) in enumerate(tqdm(test_loader, desc="Testing")):
                         imgs = imgs.to(device)
                         labels = Variable(labels.to(device), requires_grad=False)
                         batch_prediction = model(imgs)

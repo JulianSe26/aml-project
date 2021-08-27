@@ -1,17 +1,18 @@
 from pathlib import Path
+from numpy.lib.function_base import average
 import torch
 from torch import optim
 import torch.nn as nn
+from torch.utils import data
 from torch.utils.data import DataLoader, random_split
+from dataset import NIHDataset
+import logging
 import tqdm
 from torch.autograd import Variable
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
-from model import ChestRCNN
+from models import BackboneModel
 import math
-from torchvision.datasets.coco import CocoDetection
-
-from rcnn.model import ChestRCNN
 
 #from torch.profiler import profile, record_function, ProfilerActivity
 
@@ -43,7 +44,7 @@ def calculate_metrics(predictions, targets, threshold=.5):
         return {"accuracy": accuarcy, "f1": f1, "recall": recall, "precision": precision}
 
 if __name__ == '__main__':
-    dataset = CocoDetection(root="D:\\Siim\\siim-covid19-detection", annFile="D:\\Siim\\siim-covid19-detection\\cxr_covid_coco.json")
+    dataset = NIHDataset()
 
     train_len = int(.8 * len(dataset))
     test_len = len(dataset) - train_len
@@ -68,7 +69,7 @@ if __name__ == '__main__':
 
     print(f'Using device: {device_name}')
 
-    model = ChestRCNN('../resnet/models/resnext101_32x8d_epoch_0.pt')
+    model = BackboneModel(training=True)
     model.to(device)
 
     #optimizer = torch.optim.Adam(model.parameters(), lr=0.001)

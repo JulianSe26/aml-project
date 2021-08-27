@@ -434,3 +434,4 @@ data**/
 nih/
 
 trace*.json
+.idea

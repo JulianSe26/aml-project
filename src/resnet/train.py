@@ -105,9 +105,9 @@ if __name__ == '__main__':
     val_loss_per_epoch = []
 
     if args.train_loss is not None:
-        loss_per_epoch = np.load(args.train_loss)
+        loss_per_epoch = np.load(args.train_loss).tolist()
     if args.val_loss is not None:
-        val_loss_per_epoch = np.load(args.val_loss)
+        val_loss_per_epoch = np.load(args.val_loss).tolist()
     if args.test_results is not None:
         with open(args.test_results, 'rb') as f:
             test_results_general = pickle.load(f)

@@ -5,19 +5,18 @@ from albumentations.pytorch import ToTensorV2
 import torch
 
 class ChestCocoDetection(CocoDetection): 
-    def __init__(self, root, ann_file, transforms=None): 
+    def __init__(self, root, ann_file, training=True): 
         super(ChestCocoDetection, self).__init__(root, ann_file) 
-        if transforms is None:
-            transforms = A.Compose([
-                    A.Resize(512, 512),
-                    A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                    ToTensorV2()
-            ])
-        self._transforms = transforms 
+        self._transforms = A.Compose([
+                A.Resize(512, 512),
+                A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ToTensorV2()
+        ])
+        self.training = training
 
     def __getitem__(self, idx): 
         img, target = super(ChestCocoDetection, self).__getitem__(idx) 
-        #image_id = self.ids[idx] 
+        image_id = self.ids[idx] 
         #target = dict(image_id=image_id, annotations=target) 
 
         if len(target) == 0:
@@ -29,7 +28,7 @@ class ChestCocoDetection(CocoDetection):
 
         transformed = self._transforms(image=np.array(img), bboxes=boxes, category_ids=cats) 
         target = {}
-
+        target['image_id'] = torch.tensor([image_id], dtype=torch.uint8)
         if len(transformed['bboxes']) == 0:
             target['boxes'] = torch.zeros((0,4), dtype=torch.float32)
             target['area'] = torch.zeros((0), dtype=torch.float32)

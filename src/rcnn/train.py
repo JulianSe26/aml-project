@@ -57,17 +57,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    dataset = ChestCocoDetection(root="D:\\Siim\\siim-covid19-detection", ann_file="D:\\Siim\\siim-covid19-detection\\labels.json")#, transforms=A.Compose([
-                    #A.Resize(512, 512),
-                    #transforms.CenterCrop(224),
-                    #ToTensorV2()
-                    #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            #]))
-
-    train_len = int(.8 * len(dataset))
-    test_len = len(dataset) - train_len
-    train, test = random_split(dataset, [train_len, test_len])
-
+    train_data = ChestCocoDetection(root="D:\\Siim\\siim-covid19-detection", ann_file="D:\\Siim\\siim-covid19-detection\\train.json")
+    test_data = ChestCocoDetection(root="D:\\Siim\\siim-covid19-detection", ann_file="D:\\Siim\\siim-covid19-detection\\test.json", training=False)
 
     # Create required directories
     Path(model_folder).mkdir(exist_ok=True)
@@ -75,8 +66,8 @@ if __name__ == '__main__':
     Path(loss_folder).mkdir(exist_ok=True)
 
 
-    train_loader = DataLoader(train, batch_size=4, shuffle=True, pin_memory=True, num_workers=2, collate_fn=collate_fn)
-    test_loader = DataLoader(test, batch_size=4, shuffle=True, pin_memory=True, num_workers=2, collate_fn=collate_fn)
+    train_loader = DataLoader(train_data, batch_size=4, shuffle=True, pin_memory=True, num_workers=4, collate_fn=collate_fn)
+    test_loader = DataLoader(test_data, batch_size=8, shuffle=True, pin_memory=True, num_workers=4, collate_fn=collate_fn)
 
     if torch.cuda.is_available:
         device = torch.device("cuda")
@@ -130,7 +121,7 @@ if __name__ == '__main__':
         print(f"Training model on epoch {epoch} using lr={scheduler.get_last_lr()}")
 
         #for batch_i, (imgs, targets) in enumerate(tqdm(train_loader, desc="Training")):
-        for (imgs, targets) in itertools.islice(tqdm(train_loader, desc="Training"), 100):
+        for (imgs, targets) in itertools.islice(tqdm(train_loader, desc="Training"), 50):
 
             imgs = imgs.to(device)
             targets = [{k: v.to(device).requires_grad_(False) for k, v in t.items()} for t in targets]
@@ -161,7 +152,7 @@ if __name__ == '__main__':
         loss_per_epoch.append(np.mean(losses))
 
         if epoch % test_frequency == 0:
-                model.eval()
+                #model.eval()
                 with torch.no_grad(), torch.cuda.amp.autocast():
                     predictions = []
                     val_targets = []

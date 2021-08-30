@@ -36,8 +36,11 @@ class ChestRCNN(nn.Module):
         self.model = FasterRCNN(add_fpn_to_backbone(backbone), num_classes=2)
 
     @autocast()
-    def forward(self, x, target):
-        return self.model(x, target)
+    def forward(self, x, target=None):
+        if self.training:
+            return self.model(x, target)
+        else: 
+            return self.model(x)
 
 class GeneralizedRCNN(nn.Module):
     """

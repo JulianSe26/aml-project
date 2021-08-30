@@ -26,7 +26,7 @@ class CxrCOCO:
             'images': [],
             'annotations': [],
             'categories': [{
-                'id': 0,
+                'id': 1,
                 'name': 'opacity'
             }]
         }
@@ -52,9 +52,10 @@ class CxrCOCO:
                     new_anns.append({
                         'id': int(str(image_id) + str(index)),
                         'image_id': image_id,
-                        'category_id': 0,
+                        'category_id': 1,
                         'iscrowd': 0,
-                        'bbox': [box['x'], box['y'], box['width'], box['height']]
+                        'bbox': [box['x'], box['y'], box['width'], box['height']],
+                        'area': box['width'] * box['height']
                     })
 
         return new_anns

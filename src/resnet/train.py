@@ -171,7 +171,7 @@ if __name__ == '__main__':
                     print(f'\n{test_results}')
                     
 
-        if epoch % save_frequency == 0:
+        if epoch % save_frequency == 0 or epoch == number_epochs:
             torch.save(model, f"./{model_folder}/resnext101_32x8d_epoch_{epoch}_full.pt")
             torch.save(model.state_dict(), f"./{model_folder}/resnext101_32x8d_epoch_{epoch}.pt")
             torch.save({"model": model.state_dict(),

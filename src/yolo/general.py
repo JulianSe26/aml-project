@@ -50,56 +50,12 @@ def get_latest_run(search_dir='.'):
     return max(last_list, key=os.path.getctime) if last_list else ''
 
 
-
-def check_requirements(requirements='requirements.txt', exclude=()):
-    # Check installed dependencies meet requirements (pass *.txt file or list of packages)
-    import pkg_resources as pkg
-    prefix = colorstr('red', 'bold', 'requirements:')
-    if isinstance(requirements, (str, Path)):  # requirements.txt file
-        file = Path(requirements)
-        if not file.exists():
-            print(f"{prefix} {file.resolve()} not found, check failed.")
-            return
-        requirements = [f'{x.name}{x.specifier}' for x in pkg.parse_requirements(file.open()) if x.name not in exclude]
-    else:  # list or tuple of packages
-        requirements = [x for x in requirements if x not in exclude]
-
-    n = 0  # number of packages updates
-    for r in requirements:
-        try:
-            pkg.require(r)
-        except Exception as e:  # DistributionNotFound or VersionConflict if requirements not met
-            n += 1
-            print(f"{prefix} {r} not found and is required by YOLOv5, attempting auto-update...")
-            print(subprocess.check_output(f"pip install '{r}'", shell=True).decode())
-
-    if n:  # if packages updated
-        source = file.resolve() if 'file' in locals() else requirements
-        s = f"{prefix} {n} package{'s' * (n > 1)} updated per {source}\n" \
-            f"{prefix} ⚠️ {colorstr('bold', 'Restart runtime or rerun command for updates to take effect')}\n"
-        print(emojis(s))  # emoji-safe
-
-
 def check_img_size(img_size, s=32):
     # Verify img_size is a multiple of stride s
     new_size = make_divisible(img_size, int(s))  # ceil gs-multiple
     if new_size != img_size:
         print('WARNING: --img-size %g must be multiple of max stride %g, updating to %g' % (img_size, s, new_size))
     return new_size
-
-
-def check_imshow():
-    # Check if environment supports image displays
-    try:
-        assert not isdocker(), 'cv2.imshow() is disabled in Docker environments'
-        cv2.imshow('test', np.zeros((1, 1, 3)))
-        cv2.waitKey(1)
-        cv2.destroyAllWindows()
-        cv2.waitKey(1)
-        return True
-    except Exception as e:
-        print(f'WARNING: Environment does not support cv2.imshow() or PIL Image.show() image displays\n{e}')
-        return False
 
 
 def check_file(file):
@@ -152,7 +108,6 @@ def one_cycle(y1=0.0, y2=1.0, steps=100):
 
 
 def colorstr(*input):
-    # Colors a string https://en.wikipedia.org/wiki/ANSI_escape_code, i.e.  colorstr('blue', 'hello world')
     *args, string = input if len(input) > 1 else ('blue', 'bold', input[0])  # color arguments, string
     colors = {'black': '\033[30m',  # basic colors
               'red': '\033[31m',

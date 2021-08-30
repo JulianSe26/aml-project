@@ -1,4 +1,5 @@
 # Dataset utils and dataloaders
+# https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data
 
 import glob
 import logging
@@ -6,7 +7,6 @@ import math
 import os
 import random
 import shutil
-import time
 from itertools import repeat
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
@@ -20,8 +20,8 @@ from PIL import Image, ExifTags
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from general import check_requirements, xyxy2xywh, xywh2xyxy, xywhn2xyxy, xyn2xy, segment2box, segments2boxes, \
-    resample_segments, clean_str
+from general import xyxy2xywh, xywh2xyxy, xywhn2xyxy, xyn2xy, segment2box, segments2boxes, \
+    resample_segments
 from torch_utils import torch_distributed_zero_first
 
 # Parameters
@@ -56,16 +56,16 @@ def exif_size(img):
     return s
 
 
-def create_dataloader(path, imgsz, batch_size, stride, opt, hyp=None, augment=False, cache=False, pad=0.0, rect=False,
+def create_dataloader(path, imgsz, batch_size, stride, single_class, hyp=None, augment=False, cache=False, pad=0.0, rect=False,
                       rank=-1, world_size=1, workers=8, image_weights=False, quad=False, prefix=''):
-    # Make sure only the first process in DDP process the dataset first, and the following others can use the cache
+
     with torch_distributed_zero_first(rank):
         dataset = LoadImagesAndLabels(path, imgsz, batch_size,
                                       augment=augment,  # augment images
                                       hyp=hyp,  # augmentation hyperparameters
                                       rect=rect,  # rectangular training
                                       cache_images=cache,
-                                      single_cls=opt.single_cls,
+                                      single_cls=single_class,
                                       stride=int(stride),
                                       pad=pad,
                                       image_weights=image_weights,
@@ -893,6 +893,10 @@ def extract_boxes(path='../coco128/'):  # from utils.datasets import *; extract_
                     b[[1, 3]] = np.clip(b[[1, 3]], 0, h)
                     assert cv2.imwrite(str(f), im[b[1]:b[3], b[0]:b[2]]), f'box failure in {f}'
 
+def img2label_paths(img_paths):
+    # Define label paths as a function of image paths
+    sa, sb = os.sep + 'images' + os.sep, os.sep + 'labels' + os.sep  # /images/, /labels/ substrings
+    return ['txt'.join(x.replace(sa, sb, 1).rsplit(x.split('.')[-1], 1)) for x in img_paths]
 
 def autosplit(path='../coco128', weights=(0.9, 0.1, 0.0), annotated_only=False):
     """ Autosplit a dataset into train/val/test splits and save path/autosplit_*.txt files

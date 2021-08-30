@@ -428,12 +428,10 @@ data**/
 
 .token
 
-
 *.pt
 *.txt
 
 nih/
 
 trace*.json
-
 .idea

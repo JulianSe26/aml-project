@@ -435,3 +435,5 @@ nih/
 
 trace*.json
 .idea
+
+**/resnet/losses/

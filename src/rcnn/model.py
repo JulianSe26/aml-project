@@ -28,12 +28,12 @@ class ChestRCNN(nn.Module):
     def __init__(self, backbone_path):
         super(ChestRCNN, self).__init__()
 
-        backbone_model = BackboneModel(training=True)
+        backbone_model = BackboneModel()
         backbone_model.load_state_dict(torch.load(backbone_path))
         # extract only the pure resnet
         backbone = backbone_model.backbone
 
-        self.model = FasterRCNN(add_fpn_to_backbone(backbone), num_classes=4)
+        self.model = FasterRCNN(add_fpn_to_backbone(backbone), num_classes=2)
 
     @autocast()
     def forward(self, x, target):

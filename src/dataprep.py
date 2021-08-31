@@ -54,7 +54,7 @@ class CxrCOCO:
                         'image_id': image_id,
                         'category_id': 1,
                         'iscrowd': 0,
-                        'bbox': [box['x'], box['y'], box['width'], box['height']],
+                        'bbox': [max(box['x'], 0), max(box['y'], 0), box['width'], box['height']],
                         'area': box['width'] * box['height']
                     })
 

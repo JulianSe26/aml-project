@@ -1,5 +1,4 @@
 import math
-import os
 import random
 import time
 from PIL.Image import SAVE
@@ -39,7 +38,7 @@ VALDIATION_FREQUENCY = 1
 SAVE_FREQUENCY = 2 # in epochs
 LOSS_REPORT_FREQUENCY = 100
 NUMBER_DATALOADER_WORKERS = 10
-EPOCHS = 10
+EPOCHS = 30
 BATCH_SIZE = 5
 IMG_SIZE = 640
 NUMBER_OF_CLASSES = 1
@@ -89,6 +88,8 @@ checkpoint_folder = "./ckpt"
 
 
 if __name__ == '__main__':
+
+    # TODO: argument parser to indicate if its pretraining or not 
 
     # check if GPU is available
     if torch.cuda.is_available:
@@ -180,12 +181,14 @@ if __name__ == '__main__':
                 f'Doing Gradient accumulations: {accumulate}')
 
     losses_per_epoch = []
+    single_losses_per_epoch = []
     val_losses_per_epoch = []
     general_test_results = []
 
     for epoch in range(EPOCHS):
         model.train()
         losses = []
+        single_losses = []
         for i, (imgs, targets, paths, _) in enumerate(tqdm.tqdm(train_loader, desc=colorstr('train: '))):
 
             ni = i + nb * epoch  # number integrated batches (since train start)
@@ -216,6 +219,7 @@ if __name__ == '__main__':
 
 
             losses.append(loss.item())
+            single_losses.append((loss_items[:3].cpu()/ len(train_loader))) # box, obj, cls
 
             #Report loss
             if i % LOSS_REPORT_FREQUENCY == 0:
@@ -245,7 +249,8 @@ if __name__ == '__main__':
             p, r, f1, mp, mr, map50, map, t0, t1 = 0., 0., 0., 0., 0., 0., 0., 0., 0.
             loss = torch.zeros(3, device=device)
             jdict, stats, ap, ap_class = [], [], [], []
-
+            val_losses = []
+            val_losses_items = []
             for j, (imgs, targets, paths, shapes) in enumerate(tqdm.tqdm(validation_loader)):
                 imgs = imgs.to(device, non_blocking=True)
                 imgs = imgs.half()  
@@ -255,7 +260,12 @@ if __name__ == '__main__':
 
                 with torch.no_grad(), torch.cuda.amp.autocast():
                     out, train_out = model(imgs, augment=False)  # inference and training outputs
-                    loss += compute_loss([x.float() for x in train_out], targets)[1][:3]  # box, obj, cls
+                    gloss, loss_items = compute_loss([x.float() for x in train_out], targets)  
+                    loss += loss_items[:3] # box, obj, cls
+
+
+                val_losses.append(gloss.item())
+                val_losses_items.append((loss.cpu() / len(validation_loader)))
 
                 # Run NMS
                 targets[:, 2:] *= torch.Tensor([width, height, width, height]).to(device)  # to pixels
@@ -314,13 +324,30 @@ if __name__ == '__main__':
                     # Append statistics (correct, conf, pcls, tcls)
                     stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))
 
-            # Compute statistics
-            stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
+
+            val_losses_per_epoch.append(np.mean(val_losses))
+            print(f"Validation Loss {np.mean(val_losses)}")
+            stats = [np.concatenate(x, 0) for x in zip(*stats)] 
             if len(stats) and stats[0].any():
                 p, r, ap, f1, ap_class = ap_per_class(*stats)
                 ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
                 mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
-                nt = np.bincount(stats[3].astype(np.int64), minlength=NUMBER_OF_CLASSES)  # number of targets per class
+                nt = np.bincount(stats[3].astype(np.int64), minlength=NUMBER_OF_CLASSES)
+                
+                general_test_results.append({
+                "precision": p,
+                "recall": r,
+                "ap": ap,
+                "f1": f1,
+                "ap_class": ap_class,
+                "ap": ap,
+                "ap50": ap50,
+                "mp": mp,
+                "mr": mr,
+                "map50": map50,
+                "map": map
+            })
+              
             else:
                 nt = torch.zeros(1)
 
@@ -340,6 +367,8 @@ if __name__ == '__main__':
                         "scaler": scaler.state_dict()}, f"./{checkpoint_folder}/yolov5_epoch_{epoch}_ckpt.pt")
             np.save(f"{loss_folder}/yolov5_train_loss_{epoch}.np", np.array(losses_per_epoch))
             np.save(f"{loss_folder}/yolov5_val_loss_{epoch}.np", np.array(val_losses_per_epoch))
+            np.save(f"{loss_folder}/yolov5_train_loss_single_{epoch}.np", np.array(single_losses_per_epoch))
+            np.save(f"{loss_folder}/yolov5_val_loss_single_{epoch}.np", np.array(val_losses_per_epoch))
             with open(f"{loss_folder}/yolov5_general_test_results_{epoch}.pickle", "wb") as p:
                 pickle.dump(general_test_results, p)
             

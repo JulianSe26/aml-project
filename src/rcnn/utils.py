@@ -19,7 +19,6 @@ def evaluate(model, data_loader, device):
     n_threads = torch.get_num_threads()
     # FIXME remove this and make paste_masks_in_image run on the GPU
     torch.set_num_threads(1)
-    cpu_device = torch.device("cpu")
     model.eval()
     metric_logger = MetricLogger(delimiter="  ")
     header = 'Test:'
@@ -34,9 +33,17 @@ def evaluate(model, data_loader, device):
             torch.cuda.synchronize()
         model_time = time.time()
         outputs = model(images)
-
-        outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
+        #torchvision.ops.batched_nms(outputs['boxes'], outputs['scores'], )
+        #outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
         model_time = time.time() - model_time
+
+        outputs = [{k: v.to(torch.device("cpu")) for k, v in t.items()} for t in outputs]
+
+        #print("Before")
+        #print(outputs)
+        scale_boxes(outputs, targets)
+        #print("After")
+        #print(outputs)
 
         res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
         evaluator_time = time.time()
@@ -54,6 +61,20 @@ def evaluate(model, data_loader, device):
     coco_evaluator.summarize()
     torch.set_num_threads(n_threads)
     return coco_evaluator
+
+def scale_boxes(outputs, targets):
+    for target, output in zip(targets, outputs):
+        size = target['size'].detach().cpu().numpy()
+        width_factor = torch.tensor(size[0] / 1024, dtype=torch.float32)
+        height_factor = torch.tensor(size[1] / 1024, dtype=torch.float32)
+        for box in output['boxes']:
+            box[0] = box[0] * width_factor
+            box[2] = box[2] * width_factor
+            box[1] = box[1] * height_factor
+            box[3] = box[3] * height_factor
+
+
+
 
 class SmoothedValue(object):
     """Track a series of values and provide access to smoothed values over a

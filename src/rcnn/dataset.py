@@ -17,7 +17,7 @@ class ChestCocoDetection(CocoDetection):
         # of bounding boxes per default unlike the torchvision transforms
         if self.training:
             self._transforms = A.Compose([
-                A.RandomResizedCrop(height=512, width=512, scale=(.3, 1.0)),
+                A.RandomSizedBBoxSafeCrop(height=512, width=512),
                 A.HorizontalFlip(p=.3),
                 A.ShiftScaleRotate(rotate_limit=20, p=.3, border_mode=0, value=0),
                 A.OneOf([A.Blur(blur_limit=5, p=.25), A.Sharpen(p=.25)], p=.5),
@@ -28,7 +28,7 @@ class ChestCocoDetection(CocoDetection):
             ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['category_ids']))
         else:
             self._transforms = A.Compose([
-                    A.Resize(512, 512),
+                    A.Resize(1024, 1024),
                     A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                     ToTensorV2()
             ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['category_ids']))
@@ -58,4 +58,6 @@ class ChestCocoDetection(CocoDetection):
             target['boxes'] = torch.tensor(transformed['bboxes'], dtype=torch.float32)
             target['area'] = torch.tensor((boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0]), dtype=torch.float32)
             target['labels'] = torch.tensor(cats, dtype=torch.int64)
+        if not self.training:
+            target['size'] = torch.tensor(img.size, dtype=torch.int16)
         return transformed['image'], target

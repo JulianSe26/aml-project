@@ -21,7 +21,7 @@ import pandas as pd
 from rcnn.model import ChestRCNN
 
 '''================Train Configuration========================='''
-number_epochs = 35
+number_epochs = 50
 save_frequency = 2          # in epochs
 test_frequency = 1          # in epochs
 scheduler_frequency = 2     # in epochs
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     parser.add_argument("--ckpt", default=None, type=str)
     parser.add_argument("--train_loss", default=None, type=str)
     parser.add_argument("--eval_stats", default=None, type=str)
-    parser.add_argument("--start_epoch", default=0, type=int)
+    parser.add_argument("--start_epoch", default=1, type=int)
 
     args = parser.parse_args()
 
@@ -70,8 +70,8 @@ if __name__ == '__main__':
     Path(loss_folder).mkdir(exist_ok=True)
 
 
-    train_loader = DataLoader(train_data, batch_size=4, shuffle=True, pin_memory=True, num_workers=4, collate_fn=collate_fn)
-    test_loader = DataLoader(test_data, batch_size=8, shuffle=False, pin_memory=True, num_workers=8, collate_fn=collate_fn)
+    train_loader = DataLoader(train_data, batch_size=10, shuffle=True, pin_memory=True, num_workers=10, collate_fn=collate_fn)
+    test_loader = DataLoader(test_data, batch_size=6, shuffle=False, pin_memory=True, num_workers=6, collate_fn=collate_fn)
 
     if torch.cuda.is_available:
         device = torch.device("cuda")
@@ -85,7 +85,8 @@ if __name__ == '__main__':
     model = ChestRCNN('../resnet/models/resnext101_32x8d_epoch_35.pt')
     model.to(device)
 
-    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9, nesterov=True)
+    params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = optim.SGD(params, lr=0.001, momentum=0.9, nesterov=True)
 
     scaler = torch.cuda.amp.GradScaler()
 
@@ -123,7 +124,7 @@ if __name__ == '__main__':
         print(f"Training model on epoch {epoch} using lr={scheduler.get_last_lr()}")
 
         for batch_i, (imgs, targets) in enumerate(tqdm(train_loader, desc="Training")):
-        #for (imgs, targets) in itertools.islice(tqdm(train_loader, desc="Training"), 50):
+        #for (imgs, targets) in itertools.islice(tqdm(train_loader, desc="Training"), 10):
 
             imgs = imgs.to(device)
             targets = [{k: v.to(device).requires_grad_(False) for k, v in t.items()} for t in targets]

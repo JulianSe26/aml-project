@@ -25,19 +25,18 @@ class ChestCocoDetection(CocoDetection):
                 A.Cutout(num_holes=6, max_h_size=32, max_w_size=32, p=.3),
                 A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                 ToTensorV2()
-            ])
+            ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['category_ids']))
         else:
             self._transforms = A.Compose([
                     A.Resize(512, 512),
                     A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                     ToTensorV2()
-            ])
+            ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['category_ids']))
         
 
     def __getitem__(self, idx): 
         img, target_raw = super(ChestCocoDetection, self).__getitem__(idx) 
         image_id = self.ids[idx] 
-        #target = dict(image_id=image_id, annotations=target) 
 
         if len(target_raw) == 0:
             boxes = np.array([]).reshape(0,4)
@@ -46,20 +45,17 @@ class ChestCocoDetection(CocoDetection):
             boxes = np.array([(a['bbox'][0], a['bbox'][1], a['bbox'][0] + a['bbox'][2], a['bbox'][1] + a['bbox'][3]) for a in target_raw])
             cats = np.array([a['category_id'] for a in target_raw])
 
-        try:
-            transformed = self._transforms(image=np.array(img), bboxes=boxes, category_ids=cats) 
-        except Exception:
-            print(image_id)
-            print(np.array(img))
-            raise
+        transformed = self._transforms(image=np.array(img), bboxes=boxes, category_ids=cats) 
+
         target = {}
         target['image_id'] = torch.tensor([image_id], dtype=torch.int64)
         if len(transformed['bboxes']) == 0:
             target['boxes'] = torch.zeros((0,4), dtype=torch.float32)
-            #target['area'] = torch.zeros((0), dtype=torch.float32)
+            target['area'] = torch.zeros((0), dtype=torch.float32)
             target['labels'] = torch.ones_like(target['boxes'], dtype=torch.int64)
         else:
+            boxes = np.array(transformed['bboxes'])
             target['boxes'] = torch.tensor(transformed['bboxes'], dtype=torch.float32)
-            #target['area'] = torch.tensor((boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0]), dtype=torch.float32)
+            target['area'] = torch.tensor((boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0]), dtype=torch.float32)
             target['labels'] = torch.tensor(cats, dtype=torch.int64)
         return transformed['image'], target

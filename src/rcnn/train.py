@@ -16,6 +16,7 @@ from model import ChestRCNN
 import math
 from dataset import ChestCocoDetection
 from utils import evaluate
+import pandas as pd
 
 from rcnn.model import ChestRCNN
 
@@ -42,6 +43,9 @@ def calculate_metrics(predictions, targets, threshold=.5):
         accuarcy = accuracy_score(targets, predictions)
         return {"accuracy": accuarcy, "f1": f1, "recall": recall, "precision": precision}
 
+def make_df(eval_stats):
+    return pd.DataFrame(data=eval_stats, columns=["AP50:95", "AP50", "AP75", "AP50:95small", "AP50:95medium", "AP50:95large", "AR50:95", "AR50", "AR75", "AR50:95small", "AR50:95medium", "AR50:95large"])
+
 def collate_fn(batch):
     imgs, targets = zip(*batch)
     imgs = torch.stack(imgs)
@@ -67,7 +71,7 @@ if __name__ == '__main__':
 
 
     train_loader = DataLoader(train_data, batch_size=4, shuffle=True, pin_memory=True, num_workers=4, collate_fn=collate_fn)
-    test_loader = DataLoader(test_data, batch_size=8, shuffle=False, pin_memory=True, num_workers=4, collate_fn=collate_fn)
+    test_loader = DataLoader(test_data, batch_size=8, shuffle=False, pin_memory=True, num_workers=8, collate_fn=collate_fn)
 
     if torch.cuda.is_available:
         device = torch.device("cuda")
@@ -111,6 +115,10 @@ if __name__ == '__main__':
         model.train()
 
         losses = []
+        classifier_losses = []
+        box_reg_losses = []
+        objectness_losses = []
+        rpn_box_reg_losses = []
 
         print(f"Training model on epoch {epoch} using lr={scheduler.get_last_lr()}")
 
@@ -132,6 +140,10 @@ if __name__ == '__main__':
             scaler.update()
 
             losses.append(loss.item())
+            classifier_losses.append(out['loss_classifier'].item()) 
+            box_reg_losses.append(out['loss_box_reg'].item())
+            objectness_losses.append(out['loss_objectness'].item())
+            rpn_box_reg_losses.append(out['loss_rpn_box_reg'].item())
 
             if batch_i % print_loss_frequency == 0 and batch_i != 0:
                 tqdm.write(f'Epoch: {epoch}, step: {batch_i}; current loss: {np.mean(losses)}, improvement to previous loss: {np.mean(losses[:-print_loss_frequency]) - np.mean(losses[-print_loss_frequency:])}')
@@ -142,13 +154,16 @@ if __name__ == '__main__':
              scheduler.step()
 
 
-        loss_per_epoch.append(np.mean(losses))
+        loss_per_epoch.append([np.mean(losses), np.mean(classifier_losses), np.mean(box_reg_losses), np.mean(objectness_losses), np.mean(rpn_box_reg_losses)])
 
         if epoch % test_frequency == 0:
+                print(f'Epoch: {epoch}; classifier loss: {np.mean(classifier_losses)}, box reg loss: {np.mean(box_reg_losses)}, objectness loss: {np.mean(objectness_losses)}, rpn box reg loss: {np.mean(rpn_box_reg_losses)}')
                 #model.eval() --> Done in evaluate function so not required here
                 with torch.no_grad(), torch.cuda.amp.autocast():
                     evaluator = evaluate(model, test_loader, device=device)
-                    eval_stats.append(evaluator.stats)                    
+                    #print(evaluator.eval)
+                    stats = evaluator.stats#.append(evaluator.eval)
+                    eval_stats.append(stats)                    
 
         if epoch % save_frequency == 0 or epoch == number_epochs:
             torch.save(model, f"./{model_folder}/fasterrcnn_epoch_{epoch}_full.pt")

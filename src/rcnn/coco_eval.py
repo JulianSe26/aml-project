@@ -60,6 +60,7 @@ class CocoEvaluator(object):
             coco_eval.summarize()
 
             self.stats = coco_eval.stats
+            self.eval = coco_eval.eval
 
     def prepare(self, predictions, iou_type):
         if iou_type == "bbox":

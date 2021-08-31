@@ -59,6 +59,8 @@ class CocoEvaluator(object):
             print("IoU metric: {}".format(iou_type))
             coco_eval.summarize()
 
+            self.stats = coco_eval.stats
+
     def prepare(self, predictions, iou_type):
         if iou_type == "bbox":
             return self.prepare_for_coco_detection(predictions)
@@ -160,8 +162,8 @@ def convert_to_xywh(boxes):
 
 
 def merge(img_ids, eval_imgs):
-    all_img_ids = utils.all_gather(img_ids)
-    all_eval_imgs = utils.all_gather(eval_imgs)
+    all_img_ids = [img_ids]
+    all_eval_imgs = [eval_imgs]
 
     merged_img_ids = []
     for p in all_img_ids:

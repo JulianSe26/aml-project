@@ -18,8 +18,6 @@ from dataset import ChestCocoDetection
 from utils import evaluate
 import pandas as pd
 
-from rcnn.model import ChestRCNN
-
 '''================Train Configuration========================='''
 number_epochs = 50
 save_frequency = 2          # in epochs

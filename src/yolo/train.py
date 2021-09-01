@@ -19,6 +19,9 @@ import pickle
 from pathlib import Path
 
 
+PRETRAINING = False
+
+
 '''=========================PRETRAINING====================================='''
 RSNA_TRAIN_PATH = "../../data/RSNA/rsna_pneumonia_yolov5_train.txt"
 RSNA_VALIDATION_PATH = "../../data/RSNA/rsna_pneumonia_yolov5_valid.txt"
@@ -27,9 +30,8 @@ RSNA_VALIDATION_PATH = "../../data/RSNA/rsna_pneumonia_yolov5_valid.txt"
 '''=========================TRAIN FOR COVID================================='''
 SIIM_TRAIN_PATH = "tbd-"
 SIIM_VALIDATION_PATH = "tbd-" 
+BEST_PRETRAINED_MODEL_CHEKPOINT = "./models/"
 '''=========================PRETRAINING====================================='''
-
-
 
 '''
 ================= TRAIN CONFIGURATION ========================================
@@ -89,7 +91,13 @@ checkpoint_folder = "./ckpt"
 
 if __name__ == '__main__':
 
-    # TODO: argument parser to indicate if its pretraining or not 
+    
+    if PRETRAINING:
+        data_folder_train = RSNA_TRAIN_PATH
+        data_folder_validation = RSNA_VALIDATION_PATH
+    else:
+        data_folder_train = SIIM_TRAIN_PATH
+        data_folder_validation = SIIM_VALIDATION_PATH
 
     # check if GPU is available
     if torch.cuda.is_available:
@@ -140,10 +148,10 @@ if __name__ == '__main__':
     imgsz, imgsz_test = [check_img_size(x, gs) for x in [IMG_SIZE, IMG_SIZE]]  # verify imgsz are gs-multiples
 
     # Load data
-    train_loader, train_dataset = create_dataloader(RSNA_TRAIN_PATH, imgsz, BATCH_SIZE, gs, True,
+    train_loader, train_dataset = create_dataloader(data_folder_train, imgsz, BATCH_SIZE, gs, True,
                                             hyp=HYPER_PARAMETERS, augment=False, cache=True, workers= NUMBER_DATALOADER_WORKERS,
                                             prefix=colorstr('train: '))
-    validation_loader, validation_dataset = create_dataloader(RSNA_VALIDATION_PATH, imgsz, BATCH_SIZE, gs, True,
+    validation_loader, validation_dataset = create_dataloader(data_folder_validation, imgsz, BATCH_SIZE, gs, True,
                                             hyp=HYPER_PARAMETERS, augment=False, cache=True, workers= NUMBER_DATALOADER_WORKERS, rect=True,
                                             pad=.5, prefix=colorstr('val: '))
 
@@ -163,7 +171,8 @@ if __name__ == '__main__':
     model.hyp = HYPER_PARAMETERS  # attach hyperparameters to model
     model.gr = 1.0  # iou loss ratio (obj_loss = 1.0 or iou)
     model.class_weights = labels_to_class_weights(train_dataset.labels, NUMBER_OF_CLASSES).to(device) * NUMBER_OF_CLASSES  # attach class weights
-    model.names = ['Pneumonia']
+    model.names = ['Pneumonia' if PRETRAINING else 'Opacity'] 
+    print(model.names)
 
 
     # Start training

@@ -422,6 +422,8 @@ TSWLatexianTemp*
 # xwatermark package
 *.xwm
 
+.vscode/
+
 data**/
 
 .DS_Store
@@ -435,3 +437,6 @@ nih/
 
 trace*.json
 .idea
+
+**/resnet/losses/
+**/rcnn/losses/

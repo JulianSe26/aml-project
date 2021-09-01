@@ -28,16 +28,19 @@ class ChestRCNN(nn.Module):
     def __init__(self, backbone_path):
         super(ChestRCNN, self).__init__()
 
-        backbone_model = BackboneModel(training=True)
+        backbone_model = BackboneModel()
         backbone_model.load_state_dict(torch.load(backbone_path))
         # extract only the pure resnet
         backbone = backbone_model.backbone
 
-        self.model = FasterRCNN(add_fpn_to_backbone(backbone), num_classes=4)
+        self.model = FasterRCNN(add_fpn_to_backbone(backbone), num_classes=2)
 
     @autocast()
-    def forward(self, x, target):
-        return self.model(x, target)
+    def forward(self, x, target=None):
+        if self.training:
+            return self.model(x, target)
+        else: 
+            return self.model(x)
 
 class GeneralizedRCNN(nn.Module):
     """
@@ -148,7 +151,7 @@ class FasterRCNN(GeneralizedRCNN):
 
     def __init__(self, backbone, num_classes=None,
                  # transform parameters
-                 min_size=800, max_size=1333,
+                 min_size=512, max_size=1333,
                  image_mean=None, image_std=None,
                  # RPN parameters
                  rpn_anchor_generator=None, rpn_head=None,

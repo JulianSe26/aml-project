@@ -1,15 +1,20 @@
-from flask import Flask, make_response, request, jsonify, abort
+from flask import Flask, request, render_template
 from flask_httpauth import HTTPBasicAuth
-from PIL import Image
+from PIL import Image, ImageDraw
 import sys
 from gevent.pywsgi import WSGIServer
+from flask_bootstrap import Bootstrap
+import io, base64
 
 import torch
 from torchvision import transforms
 from torchvision.ops import nms
 
 app = Flask(__name__)
+bootstrap = Bootstrap(app)
 auth = HTTPBasicAuth()
+
+app.jinja_env.globals.update(zip=zip)
 
 sys.path.append('../')
 from rcnn.model import ChestRCNN
@@ -26,13 +31,7 @@ def load_torch_model():
     model.load_state_dict(torch.load(RCNN_STATE_DICT, map_location=torch.device('cpu')))
     model.eval()
 
-@app.route("/inference", methods=['POST'])
-@auth.login_required
-def inference():
-    if 'file' in request.files.keys():
-        img = Image.open(request.files['file'])
-    else:
-        return {'error': 'Request not in correct format. Send an image with the name "file"'}, 400
+def inference(img: Image):
 
     orig_width, orig_height = img.size
     width_factor = orig_width / INFERENCE_SIZE
@@ -55,6 +54,51 @@ def inference():
         # Scale boxes back to original size
         ret_boxes = [[round(box[0] * width_factor, 4), round(box[1] * height_factor, 4), round(box[2] * width_factor, 4), round(box[3] * height_factor, 4)] for box in out_boxes]
         ret_scores = [round(score, 4) for score in out_scores]
+
+    return ret_boxes, ret_scores
+
+@app.route("/")
+def index():
+    return render_template('index.html')
+
+
+@app.route("/", methods=['POST'])
+@auth.login_required
+def inference_form():
+
+
+    if 'file' not in request.files.keys() or  not request.files['file']:
+        return render_template('index.html')
+
+    img = Image.open(request.files['file'])
+
+    ret_boxes, ret_scores = inference(img)
+
+    img = img.convert('RGB')
+
+    draw = ImageDraw.Draw(img)
+    
+    for box in ret_boxes:
+        draw.rectangle(box, outline="#FF0000", width=5)
+
+    img_io = io.BytesIO()
+
+    img.save(img_io, 'PNG', quality=100)
+    img_io.seek(0)
+    img = base64.b64encode(img_io.getvalue())
+
+    return render_template('index.html', boxes=ret_boxes, scores=ret_scores, img=img.decode('ascii'))
+
+@app.route("/inference", methods=['POST'])
+@auth.login_required
+def inference_api():
+
+    if 'file' in request.files.keys():
+        img = request.files['file']
+    else:
+        return {'error': 'Request not in correct format. Send an image with the name "file"'}, 400
+
+    ret_boxes, ret_scores = inference(Image.open(img))
 
     return {'boxes': ret_boxes, 'scores': ret_scores}, 200
 

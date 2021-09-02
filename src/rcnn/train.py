@@ -20,7 +20,8 @@ import pandas as pd
 
 '''================Train Configuration========================='''
 number_epochs = 50
-save_frequency = 2          # in epochs
+model_save_frequency = 1    # in epochs
+loss_save_frequency = 2     # in epochs
 test_frequency = 1          # in epochs
 scheduler_frequency = 2     # in epochs
 print_loss_frequency = 100  # in iterations
@@ -164,13 +165,14 @@ if __name__ == '__main__':
                     stats = evaluator.stats#.append(evaluator.eval)
                     eval_stats.append(stats)                    
 
-        if epoch % save_frequency == 0 or epoch == number_epochs:
+        if epoch % model_save_frequency == 0 or epoch == number_epochs:
             torch.save(model, f"./{model_folder}/fasterrcnn_epoch_{epoch}_full.pt")
             torch.save(model.state_dict(), f"./{model_folder}/fasterrcnn_epoch_{epoch}.pt")
             torch.save({"model": model.state_dict(),
                         "optimizer": optimizer.state_dict(),
                         "scaler": scaler.state_dict(),
                         "scheduler": scheduler.state_dict()}, f"./{checkpoint_folder}/fasterrcnn_epoch_{epoch}_ckpt.pt")
+        if epoch % loss_save_frequency == 0 or epoch == number_epochs:
             np.save(f"{loss_folder}/fasterrcnn_train_loss_{epoch}", np.array(loss_per_epoch))
             np.save(f"{loss_folder}/fasterrcnn_eval_stats_{epoch}", np.array(eval_stats))
 

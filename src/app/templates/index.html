@@ -35,8 +35,28 @@
         <div class="text-center">
             <form id="imgForm" method="POST" enctype="multipart/form-data">
                 <div class="row d-flex justify-content-center">
-                    <input type='file' id="file" name="file"/>
-                    <div class="form-group" id="submitBtnContainer">
+                    <div class="input-group">
+                        <div class="custom-file">
+                            <input type='file' id="file" name="file"/>
+                            <label class="custom-file-label" for="file">Choose file by clicking here</label>
+                        </div>
+                      </div>
+                </div>
+                <div class="row d-flex justify-content-center mt-3">
+                    <div class="form-group">
+                        <div class="btn-group btn-group-toggle mr-1" data-toggle="buttons" id="modelSelect">
+                            <label class="btn btn-primary" id="rcnn" name="rcnn"> 
+                                <input type="radio" id="rcnn" name="rcnn" /> RCNN
+                            </label>
+                            <label class="btn btn-primary"> 
+                                <input type="radio" id="yolo" name="yolo" /> Yolo
+                            </label>
+                            <label class="btn btn-primary checked active"> 
+                                <input type="radio" id="ensemble" name="ensemble" /> Ensemble
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group ml-1" id="submitBtnContainer">
                         <button id="submitBtn" type="submit" class="btn btn-success">
                           Submit Image
                         </button>

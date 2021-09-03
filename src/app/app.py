@@ -31,7 +31,7 @@ def load_torch_model():
     model.load_state_dict(torch.load(RCNN_STATE_DICT, map_location=torch.device('cpu')))
     model.eval()
 
-def inference(img: Image):
+def inference_rcnn(img: Image):
 
     orig_width, orig_height = img.size
     width_factor = orig_width / INFERENCE_SIZE
@@ -66,13 +66,23 @@ def index():
 @auth.login_required
 def inference_form():
 
+    print(request.form)
+
 
     if 'file' not in request.files.keys() or  not request.files['file']:
         return render_template('index.html')
 
     img = Image.open(request.files['file'])
 
-    ret_boxes, ret_scores = inference(img)
+    model_select = request.form[0][0]
+
+    # TODO: obviously change this to run inference on the correct models
+    if model_select == 'rcnn': 
+        ret_boxes, ret_scores = inference_rcnn(img)
+    elif model_select == 'yolo':
+        ret_boxes, ret_scores = inference_rcnn(img)
+    elif model_select == 'ensemble':
+        ret_boxes, ret_scores = inference_rcnn(img)
 
     img = img.convert('RGB')
 
@@ -98,7 +108,7 @@ def inference_api():
     else:
         return {'error': 'Request not in correct format. Send an image with the name "file"'}, 400
 
-    ret_boxes, ret_scores = inference(Image.open(img))
+    ret_boxes, ret_scores = inference_rcnn(Image.open(img))
 
     return {'boxes': ret_boxes, 'scores': ret_scores}, 200
 

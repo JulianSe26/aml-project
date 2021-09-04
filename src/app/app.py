@@ -66,15 +66,14 @@ def index():
 @auth.login_required
 def inference_form():
 
-    print(request.form)
-
-
-    if 'file' not in request.files.keys() or  not request.files['file']:
+    if 'file' not in request.files.keys():
         return render_template('index.html')
 
     img = Image.open(request.files['file'])
 
-    model_select = request.form[0][0]
+    model_select = list(request.form.keys())[0]
+
+    img = img.convert('RGB')
 
     # TODO: obviously change this to run inference on the correct models
     if model_select == 'rcnn': 
@@ -83,8 +82,6 @@ def inference_form():
         ret_boxes, ret_scores = inference_rcnn(img)
     elif model_select == 'ensemble':
         ret_boxes, ret_scores = inference_rcnn(img)
-
-    img = img.convert('RGB')
 
     draw = ImageDraw.Draw(img)
     

@@ -38,10 +38,10 @@ BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_giou_pretrained/yolov5_epoch_39.pt"
 '''
 VALDIATION_FREQUENCY = 1
 SAVE_FREQUENCY = 1 # in epochs
-SCHEDULER_REDUCE_FREQUENCY = 2 # in epochs
+SCHEDULER_REDUCE_FREQUENCY = 3 # in epochs
 LOSS_REPORT_FREQUENCY = 200
 NUMBER_DATALOADER_WORKERS = 10
-EPOCHS = 100
+EPOCHS = 40
 BATCH_SIZE = 3
 IMG_SIZE = 512
 NUMBER_OF_CLASSES = 1
@@ -84,17 +84,17 @@ HYPER_PARAMETERS= {
 
 '''=================Misc Configuration========================='''
 if GIOU and PRETRAINING:
-    model_folder = "./models_giou_pretrained_100"
-    loss_folder = "./losses_giou_pretrained_100"
-    checkpoint_folder = "./ckpt_giou_pretrained_100"
+    model_folder = "./models_giou_pretrained_40"
+    loss_folder = "./losses_giou_pretrained_40"
+    checkpoint_folder = "./ckpt_giou_pretrained_40"
 elif PRETRAINING:
     model_folder = "./models_pretrained"
     loss_folder = "./losses_pretrained"
     checkpoint_folder = "./ckpt_pretrained"
 elif GIOU:
-    model_folder = "./models_final_giou_100"
-    loss_folder = "./losses_final_giou_100"
-    checkpoint_folder = "./ckpt_final_giou_100"
+    model_folder = "./models_final_giou_40"
+    loss_folder = "./losses_final_giou_40"
+    checkpoint_folder = "./ckpt_final_giou_40"
 else:
     model_folder = "./models_final"
     loss_folder = "./losses_final"
@@ -273,7 +273,7 @@ if __name__ == '__main__':
                 scaler.update()
                 optimizer.zero_grad()
 
-        if SCHEDULER_REDUCE_FREQUENCY % epoch == 0:
+        if epoch % SCHEDULER_REDUCE_FREQUENCY  == 0:
              scheduler.step()
         losses_per_epoch.append(np.mean(losses))
         single_losses_per_epoch.append(np.mean(single_losses,axis=1))

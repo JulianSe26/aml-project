@@ -1,7 +1,5 @@
 import math
 import random
-import time
-from PIL.Image import SAVE
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,39 +8,42 @@ import torch.optim.lr_scheduler as lr_scheduler
 import torch.utils.data
 from torch.cuda import amp, device
 import tqdm
-from yolo5_model import Model
-from datasets import create_dataloader
-from general import labels_to_class_weights, xywh2xyxy, check_img_size, one_cycle, colorstr, non_max_suppression, scale_coords, box_iou
-from metrics import ap_per_class
-from loss import ComputeLoss
+from yolo import Model 
+from utils.datasets import create_dataloader
+from utils.general import labels_to_class_weights, xywh2xyxy, check_img_size, one_cycle, colorstr, non_max_suppression, scale_coords, box_iou
+from utils.metrics import ap_per_class
+from utils.loss import ComputeLoss
 import pickle
 from pathlib import Path
+from utils.torch_utils import intersect_dicts
 
 
-PRETRAINING = False
-
+PRETRAINING = True
+GIOU = True
 
 '''=========================PRETRAINING====================================='''
 RSNA_TRAIN_PATH = "../../data/RSNA/rsna_pneumonia_yolov5_train.txt"
 RSNA_VALIDATION_PATH = "../../data/RSNA/rsna_pneumonia_yolov5_valid.txt"
+IMAGENET_PRETRAINED_YOLO_PATH = "./models/yolov5x6.pt"
 '''========================================================================='''
 
 '''=========================TRAIN FOR COVID================================='''
-SIIM_TRAIN_PATH = "tbd-"
-SIIM_VALIDATION_PATH = "tbd-" 
-BEST_PRETRAINED_MODEL_CHEKPOINT = "./models/"
+SIIM_TRAIN_PATH = "../../data/siim-covid19-detection/folds/yolov5_train_fold0.txt"
+SIIM_VALIDATION_PATH = "../../data/siim-covid19-detection/folds/yolov5_valid_fold0.txt" 
+BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_giou_pretrained/yolov5_epoch_39.pt"
 '''=========================PRETRAINING====================================='''
 
 '''
 ================= TRAIN CONFIGURATION ========================================
 '''
 VALDIATION_FREQUENCY = 1
-SAVE_FREQUENCY = 2 # in epochs
-LOSS_REPORT_FREQUENCY = 100
+SAVE_FREQUENCY = 1 # in epochs
+SCHEDULER_REDUCE_FREQUENCY = 3 # in epochs
+LOSS_REPORT_FREQUENCY = 200
 NUMBER_DATALOADER_WORKERS = 10
-EPOCHS = 30
-BATCH_SIZE = 5
-IMG_SIZE = 640
+EPOCHS = 40
+BATCH_SIZE = 3
+IMG_SIZE = 512
 NUMBER_OF_CLASSES = 1
 MULTI_SCALE = True
 HYPER_PARAMETERS= {
@@ -60,7 +61,6 @@ HYPER_PARAMETERS= {
     "obj_pw": 1.0,  # obj BCELoss positive_weight
     "iou_t": 0.20,  # IoU training threshold
     "anchor_t": 4.0,  # anchor-multiple threshold
-    "anchors": 3 , # anchors per output layer (0 to ignore)
     "fl_gamma": 0.0,  # focal loss gamma (efficientDet default gamma=1.5)
     "hsv_h": 0.015,  # image HSV-Hue augmentation (fraction)
     "hsv_s": 0.7,  # image HSV-Saturation augmentation (fraction)
@@ -74,7 +74,7 @@ HYPER_PARAMETERS= {
     "fliplr": 0.5,  # image flip left-right (probability)
     "mosaic": 1.0,  # image mosaic (probability)
     "mixup": 0.5,  # image mixup (probability)
-    "conf_threshold": 0.001 ,# confidence threshold for nms in validation
+    "conf_threshold": 0.01 ,# confidence threshold for nms in validation
     "iou_threshold": 0.6 # intersection over union threhsold for nms in validations
 }
 
@@ -83,9 +83,23 @@ HYPER_PARAMETERS= {
 '''
 
 '''=================Misc Configuration========================='''
-model_folder = "./models"
-loss_folder = "./losses"
-checkpoint_folder = "./ckpt"
+if GIOU and PRETRAINING:
+    model_folder = "./models_giou_pretrained_40"
+    loss_folder = "./losses_giou_pretrained_40"
+    checkpoint_folder = "./ckpt_giou_pretrained_40"
+elif PRETRAINING:
+    model_folder = "./models_pretrained"
+    loss_folder = "./losses_pretrained"
+    checkpoint_folder = "./ckpt_pretrained"
+elif GIOU:
+    model_folder = "./models_final_giou_40"
+    loss_folder = "./losses_final_giou_40"
+    checkpoint_folder = "./ckpt_final_giou_40"
+else:
+    model_folder = "./models_final"
+    loss_folder = "./losses_final"
+    checkpoint_folder = "./ckpt_final"
+
 '''============================================================''' 
 
 
@@ -114,8 +128,25 @@ if __name__ == '__main__':
     Path(checkpoint_folder).mkdir(exist_ok=True)
     Path(loss_folder).mkdir(exist_ok=True)
 
-    # Model init
+    # Model init - using L model
     model = Model(cfg="yolo5l.yaml",ch=3,nc=NUMBER_OF_CLASSES).to(device)
+    if  PRETRAINING:
+        ckpt = torch.load(IMAGENET_PRETRAINED_YOLO_PATH, map_location=device) 
+        state_dict = ckpt['model'].float().state_dict()  # to FP32
+        state_dict = intersect_dicts(state_dict, model.state_dict())  # intersect
+    else:
+        state_dict = torch.load(BEST_PRETRAINED_MODEL_CHEKPOINT, map_location=device)  
+
+   
+    model.load_state_dict(state_dict, strict=False)  # load
+
+    # Freeze
+    freeze = []  # parameter names to freeze (full or partial)
+    for k, v in model.named_parameters():
+        v.requires_grad = True  # train all layers
+        if any(x in k for x in freeze):
+            print('freezing %s' % k)
+            v.requires_grad = False
 
     pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
     for k, v in model.named_modules():
@@ -138,7 +169,7 @@ if __name__ == '__main__':
 
 
     #scheduler
-    lf = one_cycle(1, .2, EPOCHS)  # cosine 1->hyp['lrf']
+    lf = lambda x: (((1 + math.cos(x * math.pi / EPOCHS)) / 2) ** 1.0) * 0.95 + 0.05
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
 
 
@@ -149,7 +180,7 @@ if __name__ == '__main__':
 
     # Load data
     train_loader, train_dataset = create_dataloader(data_folder_train, imgsz, BATCH_SIZE, gs, True,
-                                            hyp=HYPER_PARAMETERS, augment=False, cache=True, workers= NUMBER_DATALOADER_WORKERS,
+                                            hyp=HYPER_PARAMETERS, augment=True, cache=True, workers= NUMBER_DATALOADER_WORKERS,
                                             prefix=colorstr('train: '))
     validation_loader, validation_dataset = create_dataloader(data_folder_validation, imgsz, BATCH_SIZE, gs, True,
                                             hyp=HYPER_PARAMETERS, augment=False, cache=True, workers= NUMBER_DATALOADER_WORKERS, rect=True,
@@ -163,26 +194,24 @@ if __name__ == '__main__':
 
 
     # Model parameters
-    HYPER_PARAMETERS['box'] *= 3. / nl  # scale to layers
-    HYPER_PARAMETERS['cls'] *= NUMBER_OF_CLASSES / 80. * 3. / nl  # scale to classes and layers
-    HYPER_PARAMETERS['obj'] *= (imgsz / 640) ** 2 * 3. / nl  # scale to image size and layers
+    HYPER_PARAMETERS['box'] *= 3. / nl 
+    HYPER_PARAMETERS['cls'] *= NUMBER_OF_CLASSES / 80. * 3. / nl 
+    HYPER_PARAMETERS['obj'] *= (imgsz / 640) ** 2 * 3. / nl 
     HYPER_PARAMETERS['label_smoothing'] = 0.0
-    model.nc = NUMBER_OF_CLASSES  # attach number of classes to model
-    model.hyp = HYPER_PARAMETERS  # attach hyperparameters to model
+    model.nc = NUMBER_OF_CLASSES 
+    model.hyp = HYPER_PARAMETERS 
     model.gr = 1.0  # iou loss ratio (obj_loss = 1.0 or iou)
-    model.class_weights = labels_to_class_weights(train_dataset.labels, NUMBER_OF_CLASSES).to(device) * NUMBER_OF_CLASSES  # attach class weights
-    model.names = ['Pneumonia' if PRETRAINING else 'Opacity'] 
-    print(model.names)
+    model.class_weights = labels_to_class_weights(train_dataset.labels, NUMBER_OF_CLASSES).to(device) * NUMBER_OF_CLASSES 
+    model.names = ['opacity'] 
 
 
     # Start training
-    t0 = time.time()
     number_warmups = max(round(HYPER_PARAMETERS["warmup_epochs"] * nb), 1000)  # number of warmup iterations, max(3 epochs, 1k iterations)
-    maps = np.zeros(1)  # mAP per class
+    maps = np.zeros(1)  
     results = (0, 0, 0, 0, 0, 0, 0)  # P, R, mAP@.5, mAP@.5-.95, val_loss(box, obj, cls)
-    scheduler.last_epoch = - 1  # do not move
+    scheduler.last_epoch = - 1  
     scaler = amp.GradScaler(enabled=True)
-    compute_loss = ComputeLoss(model)  # init loss class
+    compute_loss = ComputeLoss(model) 
 
     print(f'Image sizes {imgsz} train, {imgsz_test} test\n'
                 f'Using {train_loader.num_workers} dataloader workers\n'
@@ -191,6 +220,7 @@ if __name__ == '__main__':
 
     losses_per_epoch = []
     single_losses_per_epoch = []
+    single_val_losses_per_epoch = []
     val_losses_per_epoch = []
     general_test_results = []
 
@@ -226,29 +256,30 @@ if __name__ == '__main__':
                 pred = model(imgs)
                 loss, loss_items = compute_loss(pred, targets.to(device))
 
+            # Backprop
+            scaler.scale(loss).backward()
 
             losses.append(loss.item())
-            single_losses.append((loss_items[:3].cpu()/ len(train_loader))) # box, obj, cls
+            single_losses.append((loss_items[:3].cpu()/ len(train_loader)).numpy()) # box, obj, cls
 
             #Report loss
             if i % LOSS_REPORT_FREQUENCY == 0:
                 print(f' current loss {np.mean(losses)}')
 
-            # Backprop
-            scaler.scale(loss).backward()
-
+          
             # Gradient accumulations
             if ni % accumulate == 0:
                 scaler.step(optimizer)
                 scaler.update()
                 optimizer.zero_grad()
 
-        scheduler.step()
+        if epoch % SCHEDULER_REDUCE_FREQUENCY  == 0:
+             scheduler.step()
         losses_per_epoch.append(np.mean(losses))
+        single_losses_per_epoch.append(np.mean(single_losses,axis=1))
 
         if epoch % VALDIATION_FREQUENCY == 0:
             # CUDA support half precision, 
-            model.half()
             model.eval()
 
             iouv = torch.linspace(0.5, 0.55, 1).to(device)  # iou vector for mAP@0.5:0.95
@@ -262,22 +293,22 @@ if __name__ == '__main__':
             val_losses_items = []
             for j, (imgs, targets, paths, shapes) in enumerate(tqdm.tqdm(validation_loader)):
                 imgs = imgs.to(device, non_blocking=True)
-                imgs = imgs.half()  
-                imgs /= 255.0  # 0 - 255 to 0.0 - 1.0
+                imgs = imgs.float()
+                imgs /= 255.0  
                 targets = targets.to(device)
-                nb, _, height, width = imgs.shape  # batch size, channels, height, width
+                nb, _, height, width = imgs.shape  
 
-                with torch.no_grad(), torch.cuda.amp.autocast():
-                    out, train_out = model(imgs, augment=False)  # inference and training outputs
+                with torch.inference_mode(), torch.cuda.amp.autocast():
+                    out, train_out = model(imgs, augment=False) 
                     gloss, loss_items = compute_loss([x.float() for x in train_out], targets)  
                     loss += loss_items[:3] # box, obj, cls
 
 
                 val_losses.append(gloss.item())
-                val_losses_items.append((loss.cpu() / len(validation_loader)))
+                val_losses_items.append((loss.cpu() / len(validation_loader)).numpy())
 
                 # Run NMS
-                targets[:, 2:] *= torch.Tensor([width, height, width, height]).to(device)  # to pixels
+                targets[:, 2:] *= torch.Tensor([width, height, width, height]).to(device)  # pixels
                 lb =  []
                 out = non_max_suppression(out, HYPER_PARAMETERS["conf_threshold"], HYPER_PARAMETERS["iou_threshold"], labels=lb, multi_label=True, agnostic=True)
 
@@ -297,37 +328,36 @@ if __name__ == '__main__':
                     # Predictions
                     pred[:, 5] = 0
                     predn = pred.clone()
-                    scale_coords(imgs[si].shape[1:], predn[:, :4], shapes[si][0], shapes[si][1])  # native-space pred
+                    scale_coords(imgs[si].shape[1:], predn[:, :4], shapes[si][0], shapes[si][1])
 
-                     # Assign all predictions as incorrect
+                
                     correct = torch.zeros(pred.shape[0], niou, dtype=torch.bool, device=device)
                     if nl:
-                        detected = []  # target indices
+                        detected = []
                         tcls_tensor = labels[:, 0]
 
-                        # target boxes
+                        # boxes
                         tbox = xywh2xyxy(labels[:, 1:5])
-                        scale_coords(imgs[si].shape[1:], tbox, shapes[si][0], shapes[si][1])  # native-space labels
+                        scale_coords(imgs[si].shape[1:], tbox, shapes[si][0], shapes[si][1])
                     
                         # Per target class
                         for cls in torch.unique(tcls_tensor):
-                            ti = (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)  # prediction indices
-                            pi = (cls == pred[:, 5]).nonzero(as_tuple=False).view(-1)  # target indices
+                            ti = (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)
+                            pi = (cls == pred[:, 5]).nonzero(as_tuple=False).view(-1) 
 
                             # Search for detections
                             if pi.shape[0]:
-                                # Prediction to target ious
                                 ious, i = box_iou(predn[pi, :4], tbox[ti]).max(1)  # best ious, indices
 
                                 # Append detections
                                 detected_set = set()
                                 for j in (ious > iouv[0]).nonzero(as_tuple=False):
-                                    d = ti[i[j]]  # detected target
+                                    d = ti[i[j]]  
                                     if d.item() not in detected_set:
                                         detected_set.add(d.item())
                                         detected.append(d)
-                                        correct[pi[j]] = ious[j] > iouv  # iou_thres is 1xn
-                                        if len(detected) == nl:  # all targets already located in image
+                                        correct[pi[j]] = ious[j] > iouv  
+                                        if len(detected) == nl: 
                                             break
 
                     # Append statistics (correct, conf, pcls, tcls)
@@ -335,11 +365,12 @@ if __name__ == '__main__':
 
 
             val_losses_per_epoch.append(np.mean(val_losses))
+            single_val_losses_per_epoch.append(np.mean(val_losses_items, axis=1))
             print(f"Validation Loss {np.mean(val_losses)}")
             stats = [np.concatenate(x, 0) for x in zip(*stats)] 
             if len(stats) and stats[0].any():
                 p, r, ap, f1, ap_class = ap_per_class(*stats)
-                ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
+                ap50, ap = ap[:, 0], ap.mean(1) 
                 mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
                 nt = np.bincount(stats[3].astype(np.int64), minlength=NUMBER_OF_CLASSES)
                 
@@ -361,19 +392,19 @@ if __name__ == '__main__':
                 nt = torch.zeros(1)
 
             # Print results
-            pf = '%20s' + '%12i' * 2 + '%12.3g' * 4  # print format
+            pf = '%20s' + '%12i' * 2 + '%12.3g' * 4 
             print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
 
-
-            # For training return back to float32
-            model.float()
-
+        # Save losses, models and evaluation results
         if epoch % SAVE_FREQUENCY == 0:
-            torch.save(model, f"./{model_folder}/yolov5_epoch_{epoch}_full.pt")
+           # torch.save(model, f"./{model_folder}/yolov5_epoch_{epoch}_full.pt")
             torch.save(model.state_dict(), f"./{model_folder}/yolov5_epoch_{epoch}.pt")
+            '''
             torch.save({"model": model.state_dict(),
                         "optimizer": optimizer.state_dict(),
                         "scaler": scaler.state_dict()}, f"./{checkpoint_folder}/yolov5_epoch_{epoch}_ckpt.pt")
+            '''
+            
             np.save(f"{loss_folder}/yolov5_train_loss_{epoch}.np", np.array(losses_per_epoch))
             np.save(f"{loss_folder}/yolov5_val_loss_{epoch}.np", np.array(val_losses_per_epoch))
             np.save(f"{loss_folder}/yolov5_train_loss_single_{epoch}.np", np.array(single_losses_per_epoch))

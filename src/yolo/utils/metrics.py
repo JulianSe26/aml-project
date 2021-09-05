@@ -5,7 +5,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import general
+
+from . import general
 
 
 def fitness(x):

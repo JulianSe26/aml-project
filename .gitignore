@@ -440,3 +440,15 @@ trace*.json
 
 **/resnet/losses/
 **/rcnn/losses/
+**/yolo/losses/
+
+src/prepare
+**/yolo/losses_*
+
+**/yolo/models_giou_pretrained/
+**/yolo/ckpt/
+**/yolo/ckpt_giou_pretrained/
+**/yolo/ckp_giou/
+**/yolo/ckpt_final/
+**/yolo/ckpt/
+

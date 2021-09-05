@@ -1,4 +1,3 @@
-  
 # Auto-anchor utils
 
 import numpy as np
@@ -7,7 +6,7 @@ import yaml
 from scipy.cluster.vq import kmeans
 from tqdm import tqdm
 
-from general import colorstr
+from utils.general import colorstr
 
 
 def check_anchor_order(m):
@@ -62,6 +61,7 @@ def check_anchors(dataset, model, thr=4.0, imgsz=640):
 
 def kmean_anchors(path='./data/coco128.yaml', n=9, img_size=640, thr=4.0, gen=1000, verbose=True):
     """ Creates kmeans-evolved anchors from training dataset
+
         Arguments:
             path: path to dataset *.yaml, or a loaded dataset
             n: number of anchors
@@ -69,8 +69,10 @@ def kmean_anchors(path='./data/coco128.yaml', n=9, img_size=640, thr=4.0, gen=10
             thr: anchor-label wh ratio threshold hyperparameter hyp['anchor_t'] used for training, default=4.0
             gen: generations to evolve anchors using genetic algorithm
             verbose: print all results
+
         Return:
             k: kmeans evolved anchors
+
         Usage:
             from utils.autoanchor import *; _ = kmean_anchors()
     """

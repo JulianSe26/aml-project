@@ -38,7 +38,7 @@ BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_giou_pretrained/yolov5_epoch_39.pt"
 '''
 VALDIATION_FREQUENCY = 1
 SAVE_FREQUENCY = 1 # in epochs
-SCHEDULER_REDUCE_FREQUENCY = 3 # in epochs
+SCHEDULER_REDUCE_FREQUENCY = 5 # in epochs
 LOSS_REPORT_FREQUENCY = 200
 NUMBER_DATALOADER_WORKERS = 10
 EPOCHS = 40
@@ -196,7 +196,7 @@ if __name__ == '__main__':
     # Model parameters
     HYPER_PARAMETERS['box'] *= 3. / nl 
     HYPER_PARAMETERS['cls'] *= NUMBER_OF_CLASSES / 80. * 3. / nl 
-    HYPER_PARAMETERS['obj'] *= (imgsz / 640) ** 2 * 3. / nl 
+    HYPER_PARAMETERS['obj'] *= (imgsz / IMG_SIZE) ** 2 * 3. / nl 
     HYPER_PARAMETERS['label_smoothing'] = 0.0
     model.nc = NUMBER_OF_CLASSES 
     model.hyp = HYPER_PARAMETERS 

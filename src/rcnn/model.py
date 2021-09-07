@@ -27,9 +27,10 @@ from resnet.models import BackboneModel
 class ChestRCNN(nn.Module):
     def __init__(self, backbone_path):
         super(ChestRCNN, self).__init__()
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
         backbone_model = BackboneModel()
-        backbone_model.load_state_dict(torch.load(backbone_path))
+        backbone_model.load_state_dict(torch.load(backbone_path, map_location=device))
         # extract only the pure resnet
         backbone = backbone_model.backbone
 

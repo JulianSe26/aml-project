@@ -16,10 +16,10 @@ YOLO_FINAL_MODEL_PATH = "./yolo/models_final_giou_10/yolov5_epoch_14.pt"
 FASTER_RCNN_FINAL_MODEL_PATH = "./rcnn/models/fasterrcnn_epoch_23.pt"
 RESNET_BACKBONE_PATH = "./resnet/models/resnext101_32x8d_epoch_35.pt"
 
-IOU_THRESHOLD_FUSION = .4
+IOU_THRESHOLD_FUSION = .2
 CONFIDENCE_THRESHOLD = 0.3
 IOU_THRESHOLD = 0.2
-INFERENCE_SIZE = 1024
+INFERENCE_SIZE = 512
 
 def scale_boxes_to_size(width_factor,height_factor, out_boxes):
     return [[round(box[0] * width_factor, 4), round(box[1] * height_factor, 4), round(box[2] * width_factor, 4), round(box[3] * height_factor, 4)] for box in out_boxes]
@@ -130,7 +130,7 @@ def detection_fusion(img, extended_output=False):
         opacity_pred.append('opacity {} {} {} {} {}'.format(score, box[0], box[1], box[2],box[3]))
 
     if extended_output:
-        return opacity_pred, boxes, scores, scale_boxes_to_size(yolo_boxes), yolo_scores, scale_boxes_to_size(frcnn_boxes), frcnn_scores
+        return opacity_pred, boxes, scores, labels, scale_boxes_to_size(yolo_boxes), yolo_scores, scale_boxes_to_size(frcnn_boxes), frcnn_scores
 
     return opacity_pred, boxes, scores
 

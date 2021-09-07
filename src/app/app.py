@@ -5,12 +5,9 @@ import sys
 from gevent.pywsgi import WSGIServer
 from flask_bootstrap import Bootstrap
 import io, base64
-from yolo.yolo import Model
 import torch
 from torchvision import transforms
 from torchvision.ops import nms
-from yolo.utils.general import non_max_suppression
-from detection_fusion import detection_fusion
 
 
 app = Flask(__name__)
@@ -20,7 +17,11 @@ auth = HTTPBasicAuth()
 app.jinja_env.globals.update(zip=zip)
 
 sys.path.append('../')
+sys.path.append('../yolo')
 from rcnn.model import ChestRCNN
+from yolo.utils.general import non_max_suppression
+from detection_fusion import detection_fusion
+from yolo.yolo import Model
 
 BACKBONE_PATH = '../resnet/models/resnext101_32x8d_epoch_35.pt'
 RCNN_STATE_DICT = '../rcnn/models/fasterrcnn_epoch_23.pt'

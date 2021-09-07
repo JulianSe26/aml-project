@@ -18,9 +18,9 @@ from pathlib import Path
 from utils.torch_utils import intersect_dicts
 
 
-PRETRAINING = True
+PRETRAINING = False
 GIOU = True
-
+BACKBONE = False
 '''=========================PRETRAINING====================================='''
 RSNA_TRAIN_PATH = "../../data/RSNA/rsna_pneumonia_yolov5_train.txt"
 RSNA_VALIDATION_PATH = "../../data/RSNA/rsna_pneumonia_yolov5_valid.txt"
@@ -30,7 +30,7 @@ IMAGENET_PRETRAINED_YOLO_PATH = "./models/yolov5x6.pt"
 '''=========================TRAIN FOR COVID================================='''
 SIIM_TRAIN_PATH = "../../data/siim-covid19-detection/folds/yolov5_train_fold0.txt"
 SIIM_VALIDATION_PATH = "../../data/siim-covid19-detection/folds/yolov5_valid_fold0.txt" 
-BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_giou_pretrained/yolov5_epoch_39.pt"
+BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_giou_pretrained_40/yolov5_epoch_39.pt"
 '''=========================PRETRAINING====================================='''
 
 '''
@@ -38,11 +38,11 @@ BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_giou_pretrained/yolov5_epoch_39.pt"
 '''
 VALDIATION_FREQUENCY = 1
 SAVE_FREQUENCY = 1 # in epochs
-SCHEDULER_REDUCE_FREQUENCY = 5 # in epochs
+SCHEDULER_REDUCE_FREQUENCY = 2 # in epochs
 LOSS_REPORT_FREQUENCY = 200
 NUMBER_DATALOADER_WORKERS = 10
 EPOCHS = 40
-BATCH_SIZE = 3
+BATCH_SIZE = 4
 IMG_SIZE = 512
 NUMBER_OF_CLASSES = 1
 MULTI_SCALE = True
@@ -84,9 +84,9 @@ HYPER_PARAMETERS= {
 
 '''=================Misc Configuration========================='''
 if GIOU and PRETRAINING:
-    model_folder = "./models_giou_pretrained_40"
-    loss_folder = "./losses_giou_pretrained_40"
-    checkpoint_folder = "./ckpt_giou_pretrained_40"
+    model_folder = "./models_giou_pretrained_nb_40"
+    loss_folder = "./losses_giou_pretrained__nb40"
+    checkpoint_folder = "./ckpt_giou_pretrained_nb_40"
 elif PRETRAINING:
     model_folder = "./models_pretrained"
     loss_folder = "./losses_pretrained"
@@ -130,15 +130,15 @@ if __name__ == '__main__':
 
     # Model init - using L model
     model = Model(cfg="yolo5l.yaml",ch=3,nc=NUMBER_OF_CLASSES).to(device)
-    if  PRETRAINING:
+    if PRETRAINING and BACKBONE:
         ckpt = torch.load(IMAGENET_PRETRAINED_YOLO_PATH, map_location=device) 
         state_dict = ckpt['model'].float().state_dict()  # to FP32
         state_dict = intersect_dicts(state_dict, model.state_dict())  # intersect
-    else:
-        state_dict = torch.load(BEST_PRETRAINED_MODEL_CHEKPOINT, map_location=device)  
-
+        model.load_state_dict(state_dict, strict=False)  # load
+    elif not PRETRAINING:
+        state_dict = torch.load(BEST_PRETRAINED_MODEL_CHEKPOINT, map_location=device)
+        model.load_state_dict(state_dict, strict=False)  # load
    
-    model.load_state_dict(state_dict, strict=False)  # load
 
     # Freeze
     freeze = []  # parameter names to freeze (full or partial)
@@ -169,7 +169,8 @@ if __name__ == '__main__':
 
 
     #scheduler
-    lf = lambda x: (((1 + math.cos(x * math.pi / EPOCHS)) / 2) ** 1.0) * 0.95 + 0.05
+    #lf = lambda x: (((1 + math.cos(x * math.pi / EPOCHS)) / 2) ** 1.0) * 0.95 + 0.05
+    lf = one_cycle(1, .2, EPOCHS)  # cosine 1->hyp['lrf']
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
 
 

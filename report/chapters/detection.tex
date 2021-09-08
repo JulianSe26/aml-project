@@ -4,29 +4,38 @@
 
 \section{Faster R-CNN}
 \sectionauthor{Written by Tobias Richstein}
- 
- The Faster R-CNN network architecture proposed in \autocite{ren_faster_2016} by \citeauthor{ren_faster_2016} is an evolutionary step in a line of \acp{R-CNN} which are \acp{CNN} that can perform object detection on images. When given an image, an \ac{R-CNN} is able to predict bounding boxes for detected objects and also classify them. Each predicted bounding box is also given a confidence score that expresses how reliable the model assumes this result is. State of the art Faster \acp{R-CNN} achieve \ac{mAP} scores with an \ac{IoU} threshold of $0.5$ of $0.484$ on a reference COCO object detection validation set making it very well suitable for all kinds of detection tasks such as the one at hand. 
- 
- 
- Beschreibung Faster RCNN
- 
- Beschreibung Resnext
- 
- \subsection*{Training of the backbone}
- 
- First we trained the ResNeXt network to have a performant backbone that the Faster \ac{R-CNN} can utilize. A reference ResNeXt model architecture and implementation can be obtained directly from the makers of PyTorch \autocite{pytorch_team_resnext_nodate}, which we did. This reference implementation has also been pre-trained on the ImageNet dataset, meaning that we only fine-tune the weights to our use-case. We train the model on the NIH dataset described in section \vref{data:nih} and only expect it to predict the classes of illnesses that can be seen in the X-rays. We encode the ground truths, consisting of the 14 classes of the NIH dataset, as one-hot vectors and therefore also expect output tensors of the same dimension. Like in the original ResNeXt paper, we also use a \acf{SGD} optimizer that has Nesterov acceleration during training. Our learning rate decays over time and follows the equation given below which was originally proposed in \autocite{he_bag_2018} and modified slightly to provide a learning rate floor of $0.05$: 
- 
- $$
- \frac{1}{2}\left(1 + \cos\left(\frac{t * \pi}{T}\right)\right) * 0.95 + 0.05
- $$
- 
- As described in the ResNeXt paper we load the images and then perform the augmentations necessary to fit the model requirements. To do so, we use a custom dataloader that provides batches of images together with the one-hot encoded ground truth vectors. The augmentation steps done during dataloading include:
- 
- \begin{itemize}
- 	\item Resize the image to have 256 pixels on the shorter side
- 	\item Perform a $224 \times 224$ crop in the center of the resized image
- 	\item Normalize the RGB channels to have a mean of $R=0.485; G=0.456; B=0.406$ and a standard deviation of $R=0.229; G=0.224; B=0.225$
- \end{itemize}
+
+The Faster R-CNN network architecture proposed in \autocite{ren_faster_2016} by \citeauthor{ren_faster_2016} is an evolutionary step in a line of \acp{R-CNN} which are \acp{CNN} that can perform object detection on images. When given an image, an \ac{R-CNN} is able to predict bounding boxes for detected objects and also classify them. Each predicted bounding box is also given a confidence score that expresses how reliable the model assumes this result is. State of the art Faster \acp{R-CNN} achieve \ac{mAP} scores with a $0.5$ \ac{IoU} threshold of $0.484$ on a reference COCO object detection validation set making it very well suitable for all kinds of detection tasks such as the one at hand. 
+
+The original \ac{R-CNN} was proposed by \citeauthor{girshick_rich_2014} in \autocite{girshick_rich_2014}. This original \ac{R-CNN} consists of three modeules: The first one generates category independent region proposals which are regions in the image that the network believes could have relevant objects in them. In theory \ac{R-CNN} is agnostic to which network performs these region proposals but in the paper a method called \textit{Selective Search} \autocite{uijlings_selective_2013} is used to generate $2000$ region proposals. In the second module the contents of these proposed bounding boxes are passed to a backbone network which in the paper was an \textit{AlexNet} CNN \autocite{krizhevsky_imagenet_2017}, but could be any suitable network architecture to generate a 4096-length feature vector. Then the feature vector is passed onto the third module which is a set of \acp{SVM}, each trained on one specific class, to predict the class of the object encompassed by the bounding box.
+
+The approach described in \autocite{girshick_rich_2014} does work fairly well but has some big drawbacks. First it requires training of the backbone CNN and \ac{SVM} classifiers and then a separate training of the region proposal network, making it very slow to train. Another issue with this architecture was, that inference was very slow with images taking multiple seconds to be processed on a GPU which is most often not sufficient for any sort of time requirements that object detection tasks may have.
+
+To overcome the issues of the original \ac{R-CNN} paper, Fast \ac{R-CNN} was proposed a year later in \autocite{girshick_fast_2015}. Now, instead of passing each proposed region through the CNN separately, the entire image is processed once for which the \ac{CNN} generates a feature map that is valid across all regions. Again using any \ac{CNN} backbone works, but the authors used the then state of the art \textit{VGG16} architecture \autocite{simonyan_very_2015}. While this approach does make the network faster, it still requires an external region proposal network to feed the Fast \ac{R-CNN} with proposals and the image. Some speedup is achieved by being able to train the classifier and bounding box regressor at the same time.
+
+In a third advancement the concept of the Faster \ac{R-CNN} is introduced in \autocite{ren_faster_2016}. The most noticeable change is that the region proposal network is now built in and no longer requires using Selective Search or other methods. After the backbone convolution the feature maps can now be passed onto both the region proposal network and the classifier which means that they share the results of the convolution making the network faster. In the original paper, the authors use the same \textit{VGG16} backbone as in the Fast \ac{R-CNN} paper but note that a larger \textit{ResNet}\autocite{he_deep_2015} model might lead to better results at the cost of more compute intensive training and inference.
+
+The hint that a \textit{ResNet} architecture might be the better backbone to use with a Faster \ac{R-CNN}, led us to research these kinds of networks. After \citeauthor{krizhevsky_imagenet_2017} introduced the widely acclaimed deep \ac{CNN} \textit{AlexNet} a trend started to make these sorts of networks ever deeper, using more and more convolution layers under the assumption that more layers would lead to the detection of finer and maybe more hidden features in images. In \autocite{he_deep_2015} however, \citeauthor{he_deep_2015} show that this assumption only holds to a certain degree and show that a 20 layer network can perform much better than the same network with 56 layers. There are many proposed theories why this might be but the authors focus on fixing it by introducing a so called \textit{Residual Block} which essentially passes the input and output of a layer onto the next layer by adding a shortcut identity mapping from input to output.  Also so called bottlenecks are used which perform a dimensionality reduction with $1 \times 1$ convolutions. In doing so the authors are able to train networks that are hundreds or thousands of layers deep while improving classification metrics with each layer added.
+
+Building upon \textit{ResNet}, \citeauthor{xie_aggregated_2017} propose \textit{ResNeXt} in \autocite{xie_aggregated_2017}. This network architecture introduces the concept of cardinality $C$ where a residual ResNet block is split into $C$ identical groups of operations called paths. ResNeXt networks are described by the number of layers they have, their cardinality and the size of their bottleneck. The larger each parameter is, the more computationally intensive. As a middle ground we picked a model with 101 layers, a cardinality of 32 and a bottleneck size of 8. This is referred to as a \texttt{ResNeXt 101 32x8d}.
+
+\subsection*{Training of the backbone}
+
+First we trained the ResNeXt network to have a performant backbone that the Faster \ac{R-CNN} can utilize. A reference ResNeXt model architecture and implementation can be obtained directly from the makers of PyTorch \autocite{pytorch_team_resnext_nodate}, which we did. This reference implementation has also been pre-trained on the ImageNet dataset, meaning that we only fine-tune the weights to our use-case. We train the model on the NIH dataset described in section \vref{data:nih} and only expect it to predict the classes of illnesses that can be seen in the X-rays. We encode the ground truths, consisting of the 14 classes of the NIH dataset, as one-hot vectors and therefore also expect output tensors of the same dimension. Like in the original ResNeXt paper, we also use a \acf{SGD} optimizer that has Nesterov acceleration during training. Our learning rate decays over time and follows the equation given below which was originally proposed in \autocite{he_bag_2018} and modified slightly to provide a learning rate floor of $0.05 * \text{lr}_\text{initial}$: 
+
+$$
+\text{lr}_t = \left(\frac{1}{2}\left(1 + \cos\left(\frac{t * \pi}{T}\right)\right) * 0.95 + 0.05\right) * \text{lr}_\text{initial}
+$$
+
+where $t$ is the current learning rate scheduler step and $T$ is the total number of epochs. We take a step every other epoch and start with a learning rate of $\text{lr}_\text{initial} = 0.001$.
+
+As described in the ResNeXt paper we load the images and then perform the augmentations necessary to fit the model requirements. To do so, we use a custom dataloader that provides batches of images together with the one-hot encoded ground truth vectors. The augmentation steps done during dataloading include:
+
+\begin{itemize}
+	\item Resize the image to have 256 pixels on the shorter side
+	\item Perform a $224 \times 224$ crop in the center of the resized image
+	\item Normalize the RGB channels in range $0$ to $1$ to have a mean of $R=0.485; G=0.456; B=0.406$ and a standard deviation of $R=0.229; G=0.224; B=0.225$
+\end{itemize}
 
 To prevent overfitting during training we also randomly apply additional augmentations such as horizontal flips ($p=0.5$), random blurs ($p=0.3$), random rotations of up to 20° ($p=1$) or random erasings of between 1 and 10 percent of the image area ($p=0.3$).
 
@@ -41,24 +50,26 @@ We train the ResNeXt with a batch size of 32 (like in the original paper) and pe
 	\label{fig:resnet_loss}
 \end{figure*}
 
- \subsection*{Training of the Faster R-CNN}
+\subsection*{Training of the Faster R-CNN}
 
 With the backbone network trained, we could now train the Faster R-CNN on the actual detection task of predicting where lung opacities are located in a patient's X-ray image. This training shares a lot of optimizations with the backbone network described above. We use the same \ac{SGD} optimizer and learning rate schedule and train for 50 epochs which does not take too long due to the limited number of training images. We also again use autocasting since the speed improvements are too good to leave out.
 
 Due to the limited number of samples available in the SIIM dataset, we now augment the images more extensively to further prevent overfitting. Because we now have bounding boxes in the aforementioned (?) COCO format we also have to apply all augmentations to those too. To also allow the network to better detect small opacities and details we now train with a much larger image size of $512 \times 512$. We also perform random horizontal flips ($p=0.3$), random shifts with rotations of maximum 20° ($p=0.3$), one of random sharpen ($p=0.5$) or blur ($p=0.25$), random brightness and contrast adjustments ($p=0.3$) and random circular cutouts (max. 6; $p=0.3$). During inference however we pass the inputs as $1024 \times 1024$ images to make the results even clearer. As with the backbone net, we also adjust the RGB channels to fit the required mean and standard deviation values.
 
 Due to the much larger input images and network size we can only train the Faster R-CNN with a batch size of 10 and perform validation with a batch size of 6. During training of a Faster R-CNN multiple loss values have to be taken into account since there are the two tasks of classification and bounding box prediction. Detailed loss figures can be seen in figure \vref{fig:rcnn_loss}. As will be evidenced later in chapter \vref{chapter:eval_rcnn_yolo} after 50 epochs there was already some overfit even though the loss numbers look promising.
- 
- \begin{figure*}
- 	\centering
- 	\includegraphics[width=.9\linewidth]{img/loss_fasterrcnn_50.png}
- 	\caption{Loss figures of the Faster R-CNN training}
- 	\label{fig:rcnn_loss}
- \end{figure*}
- 
-\section{YOLO}
+
+\begin{figure*}
+	\centering
+	\includegraphics[width=.9\linewidth]{img/loss_fasterrcnn_50.png}
+	\caption{Loss figures of the Faster R-CNN training}
+	\label{fig:rcnn_loss}
+\end{figure*}
+
+Per default a Fast(er) R-CNN uses a smooth L1 loss for the box regression as described in \autocite{girshick_fast_2015} which according to the authors prevents exploding gradients unlike loss functions proposed in earlier R-CNN revisions. However, to try and improve convergence speeds and model accuracy, we also implemented a \ac{CIoU} loss, proposed in \autocite{zheng_enhancing_2021} and described in more detail in section \vref{chapter:yolo}, for the regressor. Unfortunately this did not work at all and the model converged a lot slower than anticipated and sometimes even became a lot worse over time. The reasons for this would need to be investigated further but due to time constraints we had to revert back to using the default smooth L1 loss function which in the end also proved quite capable as will be shown later in the evaluation in section \vref{chapter:eval_rcnn_yolo}.
+
+\section{YOLO}\label{chapter:yolo}
 \sectionauthor{Written by Julian}
- 
+
 \section{Study-Level model}
 \sectionauthor{Written by Torben}
 

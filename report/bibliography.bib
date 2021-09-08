@@ -10,33 +10,23 @@
 }
 
 @article{ren_faster_2016,
-	title = {Faster {R}-{CNN}: {Towards} {Real}-{Time} {Object} {Detection} with {Region} {Proposal} {Networks}},
-	shorttitle = {Faster {R}-{CNN}},
-	url = {http://arxiv.org/abs/1506.01497},
-	abstract = {State-of-the-art object detection networks depend on region proposal algorithms to hypothesize object locations. Advances like SPPnet and Fast R-CNN have reduced the running time of these detection networks, exposing region proposal computation as a bottleneck. In this work, we introduce a Region Proposal Network (RPN) that shares full-image convolutional features with the detection network, thus enabling nearly cost-free region proposals. An RPN is a fully convolutional network that simultaneously predicts object bounds and objectness scores at each position. The RPN is trained end-to-end to generate high-quality region proposals, which are used by Fast R-CNN for detection. We further merge RPN and Fast R-CNN into a single network by sharing their convolutional features---using the recently popular terminology of neural networks with 'attention' mechanisms, the RPN component tells the unified network where to look. For the very deep VGG-16 model, our detection system has a frame rate of 5fps (including all steps) on a GPU, while achieving state-of-the-art object detection accuracy on PASCAL VOC 2007, 2012, and MS COCO datasets with only 300 proposals per image. In ILSVRC and COCO 2015 competitions, Faster R-CNN and RPN are the foundations of the 1st-place winning entries in several tracks. Code has been made publicly available.},
-	urldate = {2021-09-06},
-	journal = {arXiv:1506.01497 [cs]},
+	title = {Faster R-{CNN}: Towards Real-Time Object Detection with Region Proposal Networks},
+	shorttitle = {Faster R-{CNN}},
+	abstract = {State-of-the-art object detection networks depend on region proposal algorithms to hypothesize object locations. Advances like {SPPnet} and Fast R-{CNN} have reduced the running time of these detection networks, exposing region proposal computation as a bottleneck. In this work, we introduce a Region Proposal Network ({RPN}) that shares full-image convolutional features with the detection network, thus enabling nearly cost-free region proposals. An {RPN} is a fully convolutional network that simultaneously predicts object bounds and objectness scores at each position. The {RPN} is trained end-to-end to generate high-quality region proposals, which are used by Fast R-{CNN} for detection. We further merge {RPN} and Fast R-{CNN} into a single network by sharing their convolutional features---using the recently popular terminology of neural networks with 'attention' mechanisms, the {RPN} component tells the unified network where to look. For the very deep {VGG}-16 model, our detection system has a frame rate of 5fps (including all steps) on a {GPU}, while achieving state-of-the-art object detection accuracy on {PASCAL} {VOC} 2007, 2012, and {MS} {COCO} datasets with only 300 proposals per image. In {ILSVRC} and {COCO} 2015 competitions, Faster R-{CNN} and {RPN} are the foundations of the 1st-place winning entries in several tracks. Code has been made publicly available.},
+	journaltitle = {{arXiv}:1506.01497 [cs]},
 	author = {Ren, Shaoqing and He, Kaiming and Girshick, Ross and Sun, Jian},
-	month = jan,
-	year = {2016},
-	note = {arXiv: 1506.01497},
-	keywords = {Computer Science - Computer Vision and Pattern Recognition},
-	annote = {Comment: Extended tech report}
+	date = {2016-01-06},
+	eprinttype = {arxiv},
+	eprint = {1506.01497}
 }
 
-
 @article{xie_aggregated_2017,
-	title = {Aggregated {Residual} {Transformations} for {Deep} {Neural} {Networks}},
-	url = {http://arxiv.org/abs/1611.05431},
-	abstract = {We present a simple, highly modularized network architecture for image classification. Our network is constructed by repeating a building block that aggregates a set of transformations with the same topology. Our simple design results in a homogeneous, multi-branch architecture that has only a few hyper-parameters to set. This strategy exposes a new dimension, which we call "cardinality" (the size of the set of transformations), as an essential factor in addition to the dimensions of depth and width. On the ImageNet-1K dataset, we empirically show that even under the restricted condition of maintaining complexity, increasing cardinality is able to improve classification accuracy. Moreover, increasing cardinality is more effective than going deeper or wider when we increase the capacity. Our models, named ResNeXt, are the foundations of our entry to the ILSVRC 2016 classification task in which we secured 2nd place. We further investigate ResNeXt on an ImageNet-5K set and the COCO detection set, also showing better results than its ResNet counterpart. The code and models are publicly available online.},
-	urldate = {2021-09-07},
-	journal = {arXiv:1611.05431 [cs]},
+	title = {Aggregated Residual Transformations for Deep Neural Networks},
+	journaltitle = {{arXiv}:1611.05431 [cs]},
 	author = {Xie, Saining and Girshick, Ross and Dollár, Piotr and Tu, Zhuowen and He, Kaiming},
-	month = apr,
-	year = {2017},
-	note = {arXiv: 1611.05431},
-	keywords = {Computer Science - Computer Vision and Pattern Recognition},
-	annote = {Comment: Accepted to CVPR 2017. Code and models: https://github.com/facebookresearch/ResNeXt},
+	date = {2017-04-10},
+	eprinttype = {arxiv},
+	eprint = {1611.05431}
 }
 
 
@@ -46,32 +36,22 @@
 	author = {{Pytorch Team}},
 }
 
-
 @article{he_bag_2018,
-	title = {Bag of {Tricks} for {Image} {Classification} with {Convolutional} {Neural} {Networks}},
-	url = {http://arxiv.org/abs/1812.01187},
-	abstract = {Much of the recent progress made in image classification research can be credited to training procedure refinements, such as changes in data augmentations and optimization methods. In the literature, however, most refinements are either briefly mentioned as implementation details or only visible in source code. In this paper, we will examine a collection of such refinements and empirically evaluate their impact on the final model accuracy through ablation study. We will show that, by combining these refinements together, we are able to improve various CNN models significantly. For example, we raise ResNet-50's top-1 validation accuracy from 75.3\% to 79.29\% on ImageNet. We will also demonstrate that improvement on image classification accuracy leads to better transfer learning performance in other application domains such as object detection and semantic segmentation.},
-	urldate = {2021-09-07},
-	journal = {arXiv:1812.01187 [cs]},
+	title = {Bag of Tricks for Image Classification with Convolutional Neural Networks},
+	journaltitle = {{arXiv}:1812.01187 [cs]},
 	author = {He, Tong and Zhang, Zhi and Zhang, Hang and Zhang, Zhongyue and Xie, Junyuan and Li, Mu},
-	month = dec,
-	year = {2018},
-	note = {arXiv: 1812.01187},
-	keywords = {Computer Science - Computer Vision and Pattern Recognition}
+	date = {2018-12-05},
+	eprinttype = {arxiv},
+	eprint = {1812.01187}
 }
 
-
 @article{micikevicius_mixed_2018,
-	title = {Mixed {Precision} {Training}},
-	url = {http://arxiv.org/abs/1710.03740},
-	abstract = {Deep neural networks have enabled progress in a wide variety of applications. Growing the size of the neural network typically results in improved accuracy. As model sizes grow, the memory and compute requirements for training these models also increases. We introduce a technique to train deep neural networks using half precision floating point numbers. In our technique, weights, activations and gradients are stored in IEEE half-precision format. Half-precision floating numbers have limited numerical range compared to single-precision numbers. We propose two techniques to handle this loss of information. Firstly, we recommend maintaining a single-precision copy of the weights that accumulates the gradients after each optimizer step. This single-precision copy is rounded to half-precision format during training. Secondly, we propose scaling the loss appropriately to handle the loss of information with half-precision gradients. We demonstrate that this approach works for a wide variety of models including convolution neural networks, recurrent neural networks and generative adversarial networks. This technique works for large scale models with more than 100 million parameters trained on large datasets. Using this approach, we can reduce the memory consumption of deep learning models by nearly 2x. In future processors, we can also expect a significant computation speedup using half-precision hardware units.},
-	urldate = {2021-09-07},
-	journal = {arXiv:1710.03740 [cs, stat]},
+	title = {Mixed Precision Training},
+	journaltitle = {{arXiv}:1710.03740 [cs, stat]},
 	author = {Micikevicius, Paulius and Narang, Sharan and Alben, Jonah and Diamos, Gregory and Elsen, Erich and Garcia, David and Ginsburg, Boris and Houston, Michael and Kuchaiev, Oleksii and Venkatesh, Ganesh and Wu, Hao},
-	month = feb,
-	year = {2018},
-	note = {arXiv: 1710.03740},
-	keywords = {Computer Science - Machine Learning, Statistics - Machine Learning, Computer Science - Artificial Intelligence}
+	date = {2018-02-15},
+	eprinttype = {arxiv},
+	eprint = {1710.03740}
 }
 
 @misc{pytorch_team_automatic_nodate,
@@ -79,8 +59,6 @@
 	url = {https://pytorch.org/docs/stable/amp.html#prefer-binary-cross-entropy-with-logits-over-binary-cross-entropy},
 	author = {{Pytorch Team}},
 }
-
-
 
 @article{weightedBoxFusion,
 	author    = {Roman A. Solovyev and Weimin Wang},
@@ -225,4 +203,78 @@
 	pages={2890--2907},
 	year={2021},
 	publisher={Springer}
+}
+
+@article{girshick_fast_2015,
+	title = {Fast R-{CNN}},
+	journaltitle = {{arXiv}:1504.08083 [cs]},
+	author = {Girshick, Ross},
+	date = {2015-09-27},
+	eprinttype = {arxiv},
+	eprint = {1504.08083},
+}
+
+
+@article{zheng_enhancing_2021,
+	title = {Enhancing Geometric Factors in Model Learning and Inference for Object Detection and Instance Segmentation},
+	journaltitle = {{arXiv}:2005.03572 [cs]},
+	author = {Zheng, Zhaohui and Wang, Ping and Ren, Dongwei and Liu, Wei and Ye, Rongguang and Hu, Qinghua and Zuo, Wangmeng},
+	date = {2021-07-05},
+	eprinttype = {arxiv},
+	eprint = {2005.03572}
+}
+
+
+@article{girshick_rich_2014,
+	title = {Rich feature hierarchies for accurate object detection and semantic segmentation},
+	journaltitle = {{arXiv}:1311.2524 [cs]},
+	author = {Girshick, Ross and Donahue, Jeff and Darrell, Trevor and Malik, Jitendra},
+	date = {2014-10-22},
+	eprinttype = {arxiv},
+	eprint = {1311.2524},
+}
+
+@article{uijlings_selective_2013,
+	title = {Selective search for object recognition},
+	volume = {104},
+	pages = {154--171},
+	number = {2},
+	journaltitle = {International journal of computer vision},
+	author = {Uijlings, Jasper {RR} and Van De Sande, Koen {EA} and Gevers, Theo and Smeulders, Arnold {WM}},
+	date = {2013},
+	note = {Publisher: Springer}
+}
+
+@article{krizhevsky_imagenet_2017,
+	title = {{ImageNet} classification with deep convolutional neural networks},
+	volume = {60},
+	issn = {0001-0782, 1557-7317},
+	url = {https://dl.acm.org/doi/10.1145/3065386},
+	doi = {10.1145/3065386},
+	pages = {84--90},
+	number = {6},
+	journaltitle = {Communications of the {ACM}},
+	shortjournal = {Commun. {ACM}},
+	author = {Krizhevsky, Alex and Sutskever, Ilya and Hinton, Geoffrey E.},
+	urldate = {2021-09-08},
+	date = {2017-05-24},
+	langid = {english}
+}
+
+@article{simonyan_very_2015,
+	title = {Very Deep Convolutional Networks for Large-Scale Image Recognition},
+	journaltitle = {{arXiv}:1409.1556 [cs]},
+	author = {Simonyan, Karen and Zisserman, Andrew},
+	date = {2015-04-10},
+	eprinttype = {arxiv},
+	eprint = {1409.1556}
+}
+
+@article{he_deep_2015,
+	title = {Deep Residual Learning for Image Recognition},
+	journaltitle = {{arXiv}:1512.03385 [cs]},
+	author = {He, Kaiming and Zhang, Xiangyu and Ren, Shaoqing and Sun, Jian},
+	date = {2015-12-10},
+	eprinttype = {arxiv},
+	eprint = {1512.03385}
 }

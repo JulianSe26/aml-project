@@ -5,8 +5,27 @@
 \sectionauthor{Written by Torben}
 
 \section{Related Work}\sectionauthor{Written by Julian}
-COVIDNET beste \autocite{wang2020covid} 
+Exploring the possibilities of Computer Vision methods in medical image analysis reaches back to the late 90's where first proposals of \ac{CAD} systems were designed like in \autocite{kraus2000aluminium}, where the authors detect aluminium dust-induced lung diseases.
+With the rise of deep learning, medical image analysis on X-rays is subject of recent academic research reaching from detecting diseases like pneumonia \autocite{pneumoniaDetection} \autocite{pneumoniaDetection2} \autocite{gupta2019evolutionary} to tuberculosis and different thoracic diseases \autocite{jangam2021deep} and even pulmonary \autocite{vieira2021detecting}. 
 
+Even though it is not completely clear how a COVID-19 infection impacts the human body, it is possible to detect typical patterns in lungs using for example chest X-rays of affected patients. This opens many possibilities to provide fast and solid \ac{CAD} solutions while build on knowledge of previous works.
+
+Since the pandemic started in 2020, there are many works published that deal with providing a reliable system for detecting COVID-19 infections using medical images. A \ac{CAD} based process would help the public health sector and relieve medical personal in hospitals by increasing the automation of X-ray examination.
+There is already some work proposed in this direction, including the COVID-Net \autocite{wang2020covid} by \citeauthor{wang2020covid}, where they use a machine-driven exploration process to design a deep convolution learning model capable of classifying X-ray images of lungs into three categories (normal, pneumonia, COVID-19). The results of their study look promising and although the authors stated explicitly the non-production-ready state, the work can be used as a basis for future projects.
+
+Another work using a deep neural network is the proposed CovidAID \autocite{mangal2020covidaid} network by \citeauthor{mangal2020covidaid}. In their approach, they use a pre-trained CheXNet \autocite{rajpurkar2017chexnet} \ac{CNN} while substituting the output layer of the model to fit it to their needs of predicting one of the four classes (normal, bacterial pneumonia, viral pneumonia, COVID-19). The authors applied transfer learning by only actively apply the train algorithm to the final layers of their proposed model, whereas the backbone weights are frozen.
+In their final comparison, the authors reported to significantly improve upon the results on the previous introduced COVID-Net.
+Similar to this the proposed model \autocite{CoronaDLTransfer} by \citeauthor{CoronaDLTransfer} using transformation learning 
+Systems that are try to detect positive cases vs. 
+
+using weighted voting ensemble \autocite{livieris2019weighted}
+
+\autocite{brunese2020explainable}
+
+However, since the challenge and the goal set in this project, we need to not only classify input images as COVID-infections, we rather need to detect and locate 
+suspicious areas in such images. There is one work proposed going in this direction:
+
+“Fast deep learning computer-aided diagnosis of COVID-19 based on digital chest x-ray images” \autocite{al2021fast}
 \section{Proposed Solution}
 \sectionauthor{Written by Tobias}
 just a short introduction to our solution, models will be convered in \vref{chapter:detection}

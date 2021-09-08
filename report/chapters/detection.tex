@@ -23,11 +23,18 @@ Building upon \textit{ResNet}, \citeauthor{xie_aggregated_2017} propose \textit{
 
 First we trained the ResNeXt network to have a performant backbone that the Faster \ac{R-CNN} can utilize. A reference ResNeXt model architecture and implementation can be obtained directly from the makers of PyTorch \autocite{pytorch_team_resnext_nodate}, which we did. This reference implementation has also been pre-trained on the ImageNet dataset, meaning that we only fine-tune the weights to our use-case. We train the model on the NIH dataset described in section \vref{data:nih} and only expect it to predict the classes of illnesses that can be seen in the X-rays. We encode the ground truths, consisting of the 14 classes of the NIH dataset, as one-hot vectors and therefore also expect output tensors of the same dimension. Like in the original ResNeXt paper, we also use a \acf{SGD} optimizer that has Nesterov acceleration during training. Our learning rate decays over time and follows the equation given below which was originally proposed in \autocite{he_bag_2018} and modified slightly to provide a learning rate floor of $0.05 * \text{lr}_\text{initial}$: 
 
-$$
+\begin{align}
 \text{lr}_t = \left(\frac{1}{2}\left(1 + \cos\left(\frac{t * \pi}{T}\right)\right) * 0.95 + 0.05\right) * \text{lr}_\text{initial}
-$$
+\end{align}
 
 where $t$ is the current learning rate scheduler step and $T$ is the total number of epochs. We take a step every other epoch and start with a learning rate of $\text{lr}_\text{initial} = 0.001$.
+
+\begin{figure*}
+	\centering
+	\includegraphics[width=.6\linewidth]{img/LR.png}
+	\caption{Learning rate schedule applied for training the detection models.}
+	\label{fig:lr_schedule}
+\end{figure*}
 
 As described in the ResNeXt paper we load the images and then perform the augmentations necessary to fit the model requirements. To do so, we use a custom dataloader that provides batches of images together with the one-hot encoded ground truth vectors. The augmentation steps done during dataloading include:
 
@@ -45,7 +52,7 @@ We train the ResNeXt with a batch size of 32 (like in the original paper) and pe
 
 \begin{figure*}
 	\centering
-	\includegraphics[width=.9\linewidth]{img/loss_backbone_rcnn_35.png}
+	\includegraphics[width=.7\linewidth]{img/loss_backbone_rcnn_35.png}
 	\caption{Loss figures of the ResNeXt training}
 	\label{fig:resnet_loss}
 \end{figure*}
@@ -60,7 +67,7 @@ Due to the much larger input images and network size we can only train the Faste
 
 \begin{figure*}
 	\centering
-	\includegraphics[width=.9\linewidth]{img/loss_fasterrcnn_50.png}
+	\includegraphics[width=.7\linewidth]{img/loss_fasterrcnn_50.png}
 	\caption{Loss figures of the Faster R-CNN training}
 	\label{fig:rcnn_loss}
 \end{figure*}
@@ -68,8 +75,27 @@ Due to the much larger input images and network size we can only train the Faste
 Per default a Fast(er) R-CNN uses a smooth L1 loss for the box regression as described in \autocite{girshick_fast_2015} which according to the authors prevents exploding gradients unlike loss functions proposed in earlier R-CNN revisions. However, to try and improve convergence speeds and model accuracy, we also implemented a \ac{CIoU} loss, proposed in \autocite{zheng_enhancing_2021} and described in more detail in section \vref{chapter:yolo}, for the regressor. Unfortunately this did not work at all and the model converged a lot slower than anticipated and sometimes even became a lot worse over time. The reasons for this would need to be investigated further but due to time constraints we had to revert back to using the default smooth L1 loss function which in the end also proved quite capable as will be shown later in the evaluation in section \vref{chapter:eval_rcnn_yolo}.
 
 \section{YOLO}\label{chapter:yolo}
-\sectionauthor{Written by Julian}
+\sectionauthor{Written by Julian Seibel}
+
+The \acl{YOLO} (\ac{YOLO}) model originally proposed in \autocite{yoloOriginal} is an object detector introduced in 2015 by \citeauthor{yoloOriginal}. In contrast to the previous presented Faster \ac{R-CNN}, this model makes its predictions with just a single network evaluation and is therefore called a single-shot detector (hence the name \ac{YOLO}). Unlike in region proposal or sliding window based network architectures, \ac{YOLO} considers the entire image
+for predicting which enables the model to implicitly encode context information about the objects. With this, the model is capable of learning the typical shape and size of objects, which objects are likely to occur together and what typical positions objects have in relation to other objects. The initial idea was to provide a object detection network that achieves both, high quality and high inference speed. The authors claim that their \ac{YOLO} model can be up to 1000 times faster than \ac{R-CNN} and up to 100 times faster than Faster \ac{R-CNN}.
+Since its initial introduction, the \ac{YOLO} model was adapted in many research problems and has been improved in several follow-up works \autocite{yolov2} \autocite{yolov3} to finally come up with the newest version \textit{V4} \autocite{yolov4}.
+
+
+\textbf{Hier noch bisschen mehr YOLO beschreiben}
+
+\textbf{dann training beschreiben + alle tricks - warmup, multilabel, GIOU, }
+
+As mentioned previously, we did also a pretraining for the \ac{YOLO} model before we trained it to the SIIM COVID-19 dataset. For this we used the RSNA pneumonia detection dataset described in \vref{data:rsna}.
+
+\begin{figure*}
+	\centering
+	\includegraphics[width=.7\linewidth]{img/loss_yolo_30.png}
+	\caption{Loss figures of the \ac{YOLO} pretraining}
+	\label{fig:yolo_pretraining_loss}
+\end{figure*}
+
 
 \section{Study-Level model}
-\sectionauthor{Written by Torben}
+\sectionauthor{Written by Torben Krieger}
 

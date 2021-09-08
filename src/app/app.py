@@ -17,25 +17,34 @@ auth = HTTPBasicAuth()
 app.jinja_env.globals.update(zip=zip)
 
 sys.path.append('../')
-sys.path.append('../yolo')
+
 from rcnn.model import ChestRCNN
-from yolo.utils.general import non_max_suppression
-from detection_fusion import detection_fusion
+from detection_fusion import EnsembleModel
 from yolo.yolo import Model
+from yolo.utils.general import non_max_suppression
 
 BACKBONE_PATH = '../resnet/models/resnext101_32x8d_epoch_35.pt'
 RCNN_STATE_DICT = '../rcnn/models/fasterrcnn_epoch_23.pt'
+YOLO_FINAL_MODEL_PATH = "./yolo/models_final_giou_40/yolov5_epoch_25.pt"
+
 
 INFERENCE_SIZE = 1024
 CONFIDENCE_THRESHOLD = 0.3
 IOU_THRESHOLD = 0.2
 
 
-def load_torch_model():
-    global model
-    model = ChestRCNN(BACKBONE_PATH).to('cpu')
-    model.load_state_dict(torch.load(RCNN_STATE_DICT, map_location=torch.device('cpu')))
-    model.eval()
+def load_torch_models():
+    global fasterRCNN
+    global yolo
+
+    fasterRCNN = ChestRCNN(BACKBONE_PATH).to('cpu')
+    fasterRCNN.load_state_dict(torch.load(RCNN_STATE_DICT, map_location=torch.device('cpu')))
+    fasterRCNN.eval()
+
+    yolo = Model(cfg="./yolo/yolo5l.yaml",ch=3,nc=1)
+    yolov5_weights = torch.load(YOLO_FINAL_MODEL_PATH)
+    yolo.load_state_dict(yolov5_weights, strict=False)
+    yolo.eval()
 
 def inference_rcnn(img: Image):
 
@@ -48,7 +57,7 @@ def inference_rcnn(img: Image):
     tensor_img = transforms.ToTensor()(img_resized).unsqueeze_(0)
 
     with torch.inference_mode():
-        out = model(tensor_img)
+        out = fasterRCNN(tensor_img)
         out_indices = nms(boxes = out[0]['boxes'], scores=out[0]['scores'], iou_threshold=IOU_THRESHOLD)
         out_boxes = torch.index_select(out[0]['boxes'], 0, out_indices).detach().numpy()
         out_scores = torch.index_select(out[0]['scores'], 0, out_indices).detach().tolist()
@@ -63,7 +72,7 @@ def inference_rcnn(img: Image):
 
     return ret_boxes, ret_scores
 
-def inference_yolo(img: Image, yolo:Model):
+def inference_yolo(img: Image):
 
     orig_width, orig_height = img.size
     width_factor = orig_width / INFERENCE_SIZE
@@ -93,7 +102,7 @@ def inference_yolo(img: Image, yolo:Model):
 
 
 def inference_ensemble(img:Image):
-    _, boxes, scores = detection_fusion(img, extended_output=False)
+    _, boxes, scores = EnsembleModel(fasterRCNN=fasterRCNN, yolo=yolo, inference_size=INFERENCE_SIZE, iou_threshold_nms=IOU_THRESHOLD, confidence_threshold_nms=CONFIDENCE_THRESHOLD).detection_fusion(img, extended_output=False)
     return boxes, scores
 
 
@@ -155,9 +164,9 @@ def get_password(InputUsername):
         return "amlproject"
     return None
 
-print(("* Loading PyTorch model and starting Flask server..."))
-load_torch_model()
-print("* Model loaded")
+print(("* Loading PyTorch models and starting Flask server..."))
+load_torch_models()
+print("* Models loaded")
 # Run app
 app_server = WSGIServer(("0.0.0.0", 5000), app)
 app_server.serve_forever()

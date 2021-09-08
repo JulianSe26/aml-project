@@ -105,7 +105,6 @@ else:
 
 if __name__ == '__main__':
 
-    
     if PRETRAINING:
         data_folder_train = RSNA_TRAIN_PATH
         data_folder_validation = RSNA_VALIDATION_PATH
@@ -318,7 +317,6 @@ if __name__ == '__main__':
                     labels = targets[targets[:, 0] == si, 1:]
                     nl = len(labels)
                     tcls = labels[:, 0].tolist() if nl else []  # target class
-                    path = Path(paths[si])
                     seen += 1
 
                     if len(pred) == 0:

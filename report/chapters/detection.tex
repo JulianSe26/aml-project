@@ -27,9 +27,9 @@ First we trained the ResNeXt network to have a performant backbone that the Fast
 \text{lr}_t = \left(\frac{1}{2}\left(1 + \cos\left(\frac{t * \pi}{T}\right)\right) * 0.95 + 0.05\right) * \text{lr}_\text{initial}
 \end{align}
 
-where $t$ is the current learning rate scheduler step and $T$ is the total number of epochs. We take a step every other epoch and start with a learning rate of $\text{lr}_\text{initial} = 0.001$.
+where $t$ is the current learning rate scheduler step and $T$ is the total number of epochs. We take a step every other epoch and start with a learning rate of $\text{lr}_\text{initial} = 0.001$ (see also figure \ref{fig:lr_schedule}).
 
-\begin{figure*}
+\begin{figure*}[h!]
 	\centering
 	\includegraphics[width=.6\linewidth]{img/LR.png}
 	\caption{Learning rate schedule applied for training the detection models.}
@@ -80,20 +80,79 @@ Per default a Fast(er) R-CNN uses a smooth L1 loss for the box regression as des
 The \acl{YOLO} (\ac{YOLO}) model originally proposed in \autocite{yoloOriginal} is an object detector introduced in 2015 by \citeauthor{yoloOriginal}. In contrast to the previous presented Faster \ac{R-CNN}, this model makes its predictions with just a single network evaluation and is therefore called a single-shot detector (hence the name \ac{YOLO}). Unlike in region proposal or sliding window based network architectures, \ac{YOLO} considers the entire image
 for predicting which enables the model to implicitly encode context information about the objects. With this, the model is capable of learning the typical shape and size of objects, which objects are likely to occur together and what typical positions objects have in relation to other objects. The initial idea was to provide a object detection network that achieves both, high quality and high inference speed. The authors claim that their \ac{YOLO} model can be up to 1000 times faster than \ac{R-CNN} and up to 100 times faster than Faster \ac{R-CNN}.
 Since its initial introduction, the \ac{YOLO} model was adapted in many research problems and has been improved in several follow-up works \autocite{yolov2} \autocite{yolov3} to finally come up with the newest version \textit{V4} \autocite{yolov4}.
-
-
-\textbf{Hier noch bisschen mehr YOLO beschreiben}
-
-\textbf{dann training beschreiben + alle tricks - warmup, multilabel, GIOU, }
-
-As mentioned previously, we did also a pretraining for the \ac{YOLO} model before we trained it to the SIIM COVID-19 dataset. For this we used the RSNA pneumonia detection dataset described in \vref{data:rsna}.
-
-\begin{figure*}
+In general, a \ac{YOLO} model consist of three main pieces:
+\begin{enumerate}
+	\item The backbone, similar to the Faster \ac{R-CNN}, this is a deep \ac{CNN} that learns image features at different angularities. In their original paper, the authors used a backbone named \textit{Darknet} that is a neural network consisting of 53 convolution
+	layers \autocite{yolov3}. However this was substituted with a CSPNet \autocite{wang2020cspnet} since \textit{V4} \autocite{yolov4}.
+	\item The neck, that is a series of layers which combine features of different convolution layers. Since \textit{V4} the PANet \autocite{tan2020efficientdet} neck is used for this part of the model. 
+	\item The head, that part consumes the features from the neck and processes them further for the final box, confidence and class prediction.
+\end{enumerate}
+The \ac{YOLO} model divides each input image of size $512\times512$ into a $G\times G$ grid, where a grid cell is \enquote{responsible} for an object if it contains the objects' center point. Each grid cell predicts bounding boxes using predefined anchors and corresponding confidence scores that indicate how likely it is that the box contains an object and how well the box fits to the object. For each bounding box a confidence score is predicted using logistic regression. Unlike in \ac{R-CNN}, the \ac{YOLO} model does not predict an offset coordinates for predefined anchors, it rather predicts the location coordinates relative to the center of a grid cell which constraints the coordinates to fall between 0 and 1. This helps the network to learn the parameters more easy. Therefore, the model prediction for a bounding box is a quintuple $(t_x,t_y,t_w,t_h,c)$ consisting of four coordinates and one for the object confidence (also called \enquote{objectness}), where $t_x$ and $t_y$ are the normalized center coordinates of the bounding box. As illustrated in figure \ref{fig:yolo_box}, the model predicts the width and height of the bounding box as offsets from center coordinates of the box and anchors given the offset from the grid cell to the top left image corner ($c_x$,$c_y$) and the anchor width and height ($p_w$,$p_h$) \autocite{yolov2} \autocite{yolov3}.
+\begin{figure*}[h!]
 	\centering
-	\includegraphics[width=.7\linewidth]{img/loss_yolo_30.png}
-	\caption{Loss figures of the \ac{YOLO} pretraining}
-	\label{fig:yolo_pretraining_loss}
+	\includegraphics[width=.45\linewidth]{img/boxpred.png}
+	\caption{\ac{YOLO} box prediction extracted from \autocite{yolov3}.}
+	\label{fig:yolo_box}
 \end{figure*}
+For each predicted box a class label is assigned using a sigmoid based multi-label classification. The confidence score for a object is then the product of \enquote{objectness} and class confidence to express the probability of a certain class instance appearing in the predicted bounding box and the quality of how well the box fits the object.
+The model will produce outputs at different scales and depending on the number of anchors, for each grid cell multiple bounding boxes will be predicted. This often leads to a huge number of predictions per image, which is why non maximum suppression is performed  to filter out boxes that do not meet a certain confidence threshold and that overlap to much in terms of \ac{IoU} (used thrshold of 0.5 in our experiments).
+
+
+\subsection*{Training of the \ac{YOLO} model}
+
+For our implementation, we decided to use a model provided by \autocite{yolov5} which is called unofficially YOLO \textit{V5} which is based on the YOLO \textit{V4} with some improvements in speed and quality. 
+
+We found that if we use pretrained weights on the COCO dataset for the model, we get a performance boost in terms of our selected metrics (see \vref{chapter:eval_rcnn_yolo} for further details). In addition, we did a pretraining for the model before we trained it to the SIIM COVID-19 dataset. For this we used the RSNA pneumonia detection dataset described in \vref{data:rsna}.
+
+
+We applied the same learning rate scheduling for all trainings  of the \ac{YOLO} model  
+\textbf{dann training beschreiben + alle tricks - warmup, multilabel, GIOU \autocite{giou} }
+
+
+\begin{figure}[!htb]
+	\centering
+	\begin{minipage}{.5\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{img/loss_yolo_30.png}
+		\caption{$dt=0.1$}
+		\label{fig:prob1_6_2}
+	\end{minipage}%
+	\begin{minipage}{0.5\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{img/loss_yolo_giou_40_siim.png}
+		\caption{$dt =$}
+		\label{fig:prob1_6_1}
+	\end{minipage}
+\end{figure}
+
+%\begin{figure*}[h!]
+%	\centering
+%	\includegraphics[width=.7\linewidth]{img/loss_yolo_30.png}
+%	\caption{Loss figures of the \ac{YOLO} pretraining}
+%	\label{fig:yolo_pretraining_loss}
+%\end{figure*}
+
+\section{Combining detections}
+\sectionauthor{Julian Seibel}
+For our final COVID-19 detection, we decided to combine the two described models in an ensemble predictor to combine both advantages of the models and also to create a more stable bounding-box prediction considering both the outputs. For this we created a weighted box fusion following the approach of \citeauthor{weightedBoxFusion} \autocite{weightedBoxFusion}, where we get a final bounding box prediction given the predictions of each model.
+
+Each predicted box is added to a list $B$, that is sorted w.r.t. the corresponding confidence scores. Then two new empty lists are created for boxes clusters $L$ and fused boxes $F$. Each position in $F$ stores the fused box for the corresponding entry $pos$ in $L$. The algorithm then iterates over the predicted boxes in $B$ trying to find a matching box in $F$ based on a \ac{IoU} criteria (e.g. IoU > Threshold, where in our case the threshold was set to 0.55). If no match is found, the box from list $B$ is added $L$ and $F$. In contrast, if a match is found, the box is added to the cluster list $L$ at the corresponding position to the box in $F$. The box coordinates $(x,y)$ and confidence scores $c$ in $F$ will then be recalculated using all boxes accumulated in $L[pos]$ with the fusion equation:
+\begin{align}
+	c = \frac{\sum_{i=1}^{T}c_i}{T}
+\end{align}
+\begin{align}
+	x_{1,2} = \frac{\sum_{i=1}^{T} c_i * x_{1,2}^i}{\sum_{i=1}^{T} c_i}
+\end{align}
+\begin{align}
+	y_{1,2} = \frac{\sum_{i=1}^{T} c_i * y_{1,2}^i}{\sum_{i=1}^{T} c_i}
+\end{align}
+Using the confidence scores as weights, predicted boxes with higher confidence naturally contribute more to the fused box.
+If all predicted boxes in $B$ are processed, confidence scores in $F$ will be rescaled using the number of predicted bounding boxes $T$ and and the number of participating models $M$:
+\begin{align}
+	c = c * \frac{min(T,M)}{M}
+\end{align}
+In our final version, we set the weights for the box fusion $w_{fusion} = (1,1)$ meaning that each model contributes the same to the final prediction.
+We did not apply any training process to the ensemble model, but it would be interesting to train the ensemble approach in an end to end fashion. However, we do not have the computational resources available to jointly train both detection models.
 
 
 \section{Study-Level model}

@@ -1,11 +1,16 @@
 % !TEX root =  master.tex
+
+
 \chapter{Introduction and problem definition}\label{chapter:intro}
+
+\section*{Project Sources}
+Research project on Github \url{https://github.com/JulianSe26/aml-project}.
 
 \section{Kaeggle Challenge}
 \sectionauthor{Written by Torben Krieger}
 
 \section{Related Work}\sectionauthor{Written by Julian Seibel}
-Exploring the possibilities of Computer Vision methods in medical image analysis reaches back to the late 90's where first proposals of \ac{CAD} systems were designed like in \autocite{kraus2000aluminium}, where the authors detect aluminium dust-induced lung diseases.
+Exploring the possibilities of Computer Vision methods in medical image analysis reaches back to the late 90's where first proposals of \ac{CAD} systems were  introduced like in \autocite{kraus2000aluminium}, in which the authors detect aluminium dust-induced lung diseases.
 With the rise of deep learning, medical image analysis on X-rays is subject of recent academic research reaching from detecting diseases like pneumonia \autocite{pneumoniaDetection} \autocite{pneumoniaDetection2} \autocite{gupta2019evolutionary} to tuberculosis and different thoracic diseases \autocite{jangam2021deep} and even pulmonary \autocite{vieira2021detecting}. Many of the contributions utilize a \ac{CNN} as single predictor. However there are interesting approaches using ensemble methods like in \autocite{livieris2019weighted}, where multiple predictors assigned with weights contribute to the final prediction. This stabilizes the training process and leads to a higher overall quality of the model by utilizing different advantages of different single models.
 
 Even though it is not completely clear how a COVID-19 infection impacts the human body, it is possible to detect typical patterns in lungs using for example chest X-rays of affected patients. This opens many possibilities to provide fast and solid \ac{CAD} solutions while build on knowledge of previous works.

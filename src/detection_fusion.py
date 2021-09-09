@@ -14,7 +14,7 @@ from yolo.utils.general import non_max_suppression
 
 class EnsembleModel():
 
-    def __init__(self, fasterRcnn:ChestRCNN, yolo:Model, inference_size = 1024, iou_threshold_nms=.2, iou_threshold_fusion=.2, confidence_threshold_nms=.3):
+    def __init__(self, fasterRcnn:ChestRCNN, yolo:Model, inference_size = 512, iou_threshold_nms=.2, iou_threshold_fusion=.55, confidence_threshold_nms=.1):
         self.fasterRcnn = fasterRcnn
         self.yolo = yolo
         self.inference_size = inference_size
@@ -68,7 +68,7 @@ class EnsembleModel():
         img_resized = img.resize((self.inference_size, self.inference_size), Image.ANTIALIAS)
 
         tensor_img = transforms.ToTensor()(img_resized).unsqueeze_(0)
-        tensor_img /= 255
+        #tensor_img /= 255
 
         with torch.inference_mode():
             prediction = self.yolo(tensor_img,augment=True)[0]
@@ -103,6 +103,7 @@ class EnsembleModel():
         # inference 
         frcnn_boxes, frcnn_scores, frcnn_labels = self.inference_rcnn(img)
         yolo_boxes, yolo_scores, yolo_labels = self.inference_yolo(img)
+        #print(f'YOLO results: {yolo_scores}, {yolo_labels}')
 
         boxes = [frcnn_boxes, yolo_boxes]
         scores = [frcnn_scores , yolo_scores]
@@ -123,7 +124,7 @@ class EnsembleModel():
             opacity_pred.append('opacity {} {} {} {} {}'.format(score, box[0], box[1], box[2],box[3]))
 
         if extended_output:
-            return opacity_pred, boxes, scores, labels, self.scale_boxes_to_size(orig_width, orig_height, yolo_boxes), yolo_scores, self.scale_boxes_to_size(orig_width, orig_height, frcnn_boxes), frcnn_scores
+            return opacity_pred, boxes, scores, labels, self.scale_boxes_to_size(orig_width, orig_height, yolo_boxes), yolo_scores, yolo_labels, self.scale_boxes_to_size(orig_width, orig_height, frcnn_boxes), frcnn_scores, frcnn_labels
 
         return opacity_pred, boxes, scores
 

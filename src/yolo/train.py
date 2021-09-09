@@ -18,9 +18,9 @@ from pathlib import Path
 from utils.torch_utils import intersect_dicts
 
 
-PRETRAINING = False
-GIOU = True
-BACKBONE = False
+PRETRAINING = True
+GIOU = False
+BACKBONE = True
 '''=========================PRETRAINING====================================='''
 RSNA_TRAIN_PATH = "../../data/RSNA/rsna_pneumonia_yolov5_train.txt"
 RSNA_VALIDATION_PATH = "../../data/RSNA/rsna_pneumonia_yolov5_valid.txt"
@@ -279,7 +279,6 @@ if __name__ == '__main__':
         single_losses_per_epoch.append(np.mean(single_losses,axis=1))
 
         if epoch % VALDIATION_FREQUENCY == 0:
-            # CUDA support half precision, 
             model.eval()
 
             iouv = torch.linspace(0.5, 0.55, 1).to(device)  # iou vector for mAP@0.5:0.95
@@ -300,6 +299,8 @@ if __name__ == '__main__':
 
                 with torch.inference_mode(), torch.cuda.amp.autocast():
                     out, train_out = model(imgs, augment=False) 
+                    print("inference output:\n")
+                    print(out, train_out)
                     gloss, loss_items = compute_loss([x.float() for x in train_out], targets)  
                     loss += loss_items[:3] # box, obj, cls
 

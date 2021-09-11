@@ -30,7 +30,7 @@ IMAGENET_PRETRAINED_YOLO_PATH = "./models/yolov5x6.pt"
 '''=========================TRAIN FOR COVID================================='''
 SIIM_TRAIN_PATH = "../../data/siim-covid19-detection/folds/yolov5_train_fold0.txt"
 SIIM_VALIDATION_PATH = "../../data/siim-covid19-detection/folds/yolov5_valid_fold0.txt" 
-BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_giou_pretrained_40/yolov5_epoch_39.pt"
+BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_pretrained/yolov5_epoch_30.pt"
 '''=========================PRETRAINING====================================='''
 
 '''
@@ -38,10 +38,10 @@ BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_giou_pretrained_40/yolov5_epoch_39.p
 '''
 VALDIATION_FREQUENCY = 1
 SAVE_FREQUENCY = 1 # in epochs
-SCHEDULER_REDUCE_FREQUENCY = 2 # in epochs
+SCHEDULER_REDUCE_FREQUENCY = 1 # in epochs
 LOSS_REPORT_FREQUENCY = 200
 NUMBER_DATALOADER_WORKERS = 10
-EPOCHS = 40
+EPOCHS = 42
 BATCH_SIZE = 3
 IMG_SIZE = 512
 NUMBER_OF_CLASSES = 1
@@ -54,7 +54,7 @@ HYPER_PARAMETERS= {
     "warmup_epochs": 3.0,  # warmup epochs (fractions ok)
     "warmup_momentum": 0.8,  # warmup initial momentum
     "warmup_bias_lr": 0.1,  # warmup initial bias lr
-    "box": 0.05,  # box loss gain
+    "box": 0.1,  # box loss gain
     "cls": 0.5,  # cls loss gain
     "cls_pw": 1.0,  # cls BCELoss positive_weight
     "obj": 1.0,  # obj loss gain (scale with pixels)
@@ -105,6 +105,8 @@ else:
 
 if __name__ == '__main__':
 
+    print(f' Starting training with the following configuration: \n PRETRAINING={PRETRAINING}\n GIOU={GIOU}\nBACKBONE={BACKBONE}')
+
     if PRETRAINING:
         data_folder_train = RSNA_TRAIN_PATH
         data_folder_validation = RSNA_VALIDATION_PATH
@@ -146,6 +148,7 @@ if __name__ == '__main__':
         if any(x in k for x in freeze):
             print('freezing %s' % k)
             v.requires_grad = False
+    
 
     pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
     for k, v in model.named_modules():
@@ -207,8 +210,6 @@ if __name__ == '__main__':
 
     # Start training
     number_warmups = max(round(HYPER_PARAMETERS["warmup_epochs"] * nb), 1000)  # number of warmup iterations, max(3 epochs, 1k iterations)
-    maps = np.zeros(1)  
-    results = (0, 0, 0, 0, 0, 0, 0)  # P, R, mAP@.5, mAP@.5-.95, val_loss(box, obj, cls)
     scheduler.last_epoch = - 1  
     scaler = amp.GradScaler(enabled=True)
     compute_loss = ComputeLoss(model) 
@@ -219,10 +220,12 @@ if __name__ == '__main__':
                 f'Doing Gradient accumulations: {accumulate}')
 
     losses_per_epoch = []
-    single_losses_per_epoch = []
     single_val_losses_per_epoch = []
     val_losses_per_epoch = []
     general_test_results = []
+
+    mloss = torch.zeros(4, device=device)  # mean losses
+    mloss_val = torch.zeros(4, device=device)
 
     for epoch in range(EPOCHS):
         model.train()
@@ -259,12 +262,16 @@ if __name__ == '__main__':
             # Backprop
             scaler.scale(loss).backward()
 
-            losses.append(loss.item())
+          
+
+            mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
+            #losses.append(loss.item())
             single_losses.append((loss_items[:3].cpu()/ len(train_loader)).numpy()) # box, obj, cls
 
             #Report loss
             if i % LOSS_REPORT_FREQUENCY == 0:
-                print(f' current loss {np.mean(losses)}')
+                print(f'\nmean loss: {mloss}')
+              
 
           
             # Gradient accumulations
@@ -275,8 +282,8 @@ if __name__ == '__main__':
 
         if epoch % SCHEDULER_REDUCE_FREQUENCY  == 0:
              scheduler.step()
-        losses_per_epoch.append(np.mean(losses))
-        single_losses_per_epoch.append(np.mean(single_losses,axis=1))
+        losses_per_epoch.append(mloss.cpu().numpy())
+        print(losses_per_epoch, type(losses_per_epoch))
 
         if epoch % VALDIATION_FREQUENCY == 0:
             model.eval()
@@ -288,7 +295,6 @@ if __name__ == '__main__':
             p, r, f1, mp, mr, map50, map, t0, t1 = 0., 0., 0., 0., 0., 0., 0., 0., 0.
             loss = torch.zeros(3, device=device)
             jdict, stats, ap, ap_class = [], [], [], []
-            val_losses = []
             val_losses_items = []
             for j, (imgs, targets, paths, shapes) in enumerate(tqdm.tqdm(validation_loader)):
                 imgs = imgs.to(device, non_blocking=True)
@@ -299,13 +305,12 @@ if __name__ == '__main__':
 
                 with torch.inference_mode(), torch.cuda.amp.autocast():
                     out, train_out = model(imgs, augment=False) 
-                    print("inference output:\n")
-                    print(out, train_out)
+                    
                     gloss, loss_items = compute_loss([x.float() for x in train_out], targets)  
                     loss += loss_items[:3] # box, obj, cls
 
 
-                val_losses.append(gloss.item())
+                mloss_val = (mloss_val * j + loss_items) / (j + 1)  # update mean losses
                 val_losses_items.append((loss.cpu() / len(validation_loader)).numpy())
 
                 # Run NMS
@@ -364,9 +369,9 @@ if __name__ == '__main__':
                     stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))
 
 
-            val_losses_per_epoch.append(np.mean(val_losses))
+            val_losses_per_epoch.append(mloss_val.cpu().numpy())
             single_val_losses_per_epoch.append(np.mean(val_losses_items, axis=1))
-            print(f"Validation Loss {np.mean(val_losses)}")
+            print(f"Validation Loss {mloss_val}")
             stats = [np.concatenate(x, 0) for x in zip(*stats)] 
             if len(stats) and stats[0].any():
                 p, r, ap, f1, ap_class = ap_per_class(*stats)
@@ -407,7 +412,6 @@ if __name__ == '__main__':
             
             np.save(f"{loss_folder}/yolov5_train_loss_{epoch}.np", np.array(losses_per_epoch))
             np.save(f"{loss_folder}/yolov5_val_loss_{epoch}.np", np.array(val_losses_per_epoch))
-            np.save(f"{loss_folder}/yolov5_train_loss_single_{epoch}.np", np.array(single_losses_per_epoch))
             np.save(f"{loss_folder}/yolov5_val_loss_single_{epoch}.np", np.array(val_losses_per_epoch))
             with open(f"{loss_folder}/yolov5_general_test_results_{epoch}.pickle", "wb") as p:
                 pickle.dump(general_test_results, p)

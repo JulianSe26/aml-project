@@ -23,7 +23,7 @@ Building upon \textit{ResNet}, \citeauthor{xie_aggregated_2017} propose \textit{
 
 First we trained the ResNeXt network to have a performant backbone that the Faster \ac{R-CNN} can utilize. A reference ResNeXt model architecture and implementation can be obtained directly from the makers of PyTorch \autocite{pytorch_team_resnext_nodate}, which we did. This reference implementation has also been pre-trained on the ImageNet dataset, meaning that we only fine-tune the weights to our use-case. We train the model on the NIH dataset described in section \vref{data:nih} and only expect it to predict the classes of illnesses that can be seen in the X-rays. We encode the ground truths, consisting of the 14 classes of the NIH dataset, as one-hot vectors and therefore also expect output tensors of the same dimension. Like in the original ResNeXt paper, we also use a \acf{SGD} optimizer that has Nesterov acceleration during training. Our learning rate decays over time and follows the equation given below which was originally proposed in \autocite{he_bag_2018} and modified slightly to provide a learning rate floor of $0.05 * \text{lr}_\text{initial}$: 
 
-\begin{align}
+\begin{align}\label{eq:scheduler}
 \text{lr}_t = \left(\frac{1}{2}\left(1 + \cos\left(\frac{t * \pi}{T}\right)\right) * 0.95 + 0.05\right) * \text{lr}_\text{initial}
 \end{align}
 
@@ -44,11 +44,11 @@ As described in the ResNeXt paper we load the images and then perform the augmen
 	\item Normalize the RGB channels in range $0$ to $1$ to have a mean of $R=0.485; G=0.456; B=0.406$ and a standard deviation of $R=0.229; G=0.224; B=0.225$
 \end{itemize}
 
-To prevent overfitting during training we also randomly apply additional augmentations such as horizontal flips ($p=0.5$), random blurs ($p=0.3$), random rotations of up to 20° ($p=1$) or random erasings of between 1 and 10 percent of the image area ($p=0.3$).
+To prevent overfitting during training we also randomly apply additional augmentations such as horizontal flips ($p=0.5$), random blurs ($p=0.3$), random rotations of up to 20° ($p=1$) or random erasing of between 1 and 10 percent of the image area ($p=0.3$).
 
 Since we have somewhat limited hardware resources at our disposal in comparison to large scale compute clusters that are often used for such training tasks by researchers, we also apply a method called \textit{Autocasting} to speed up training and allow us to use larger batch sizes. The basis of Autocasting is the ability to use mixed precision during network training. While most frameworks such as PyTorch usually use 32bit floating point numbers (single precision) for all calculations, it has been shown that performing some operations with 16bit representations (half precision) does not penalize accuracy but provides a large speedup since more data can fit in the most often constrained GPU memory and the also constrained data transfer bandwidth can be used more effectively \autocite{micikevicius_mixed_2018}. The GPUs that we have at our disposal also feature special matrix multiplication hardware that works best with half precision numbers, meaning that we profit from mixed precision training in a significant way. The speedup for the ResNeXt training for example was almost twice as fast as before. The decision whether to perform operations at half precision is made automatically by PyTorch when the model is wrapped in an autocasting decorator.
 
-We train the ResNeXt with a batch size of 32 (like in the original paper) and perform 35 epochs. To calculate the loss we use Binary Cross Entropy but with Logits as recommended for mixed precision training which uses the log-sum-exp trick to improve the numerical stability and avoid loss terms that cannot be represented by half precision \autocite{pytorch_team_automatic_nodate}. The loss numbers for the training and validation loss can be seen in \vref{fig:resnet_loss}. It can be seen that in the end some overfit occures where the train loss keeps decreasing and the validation loss stays mostly constant or even increases very slightly. In the end we still decided to use the model after 35 epochs since the loss figures are very good and it also evaluates very well as will be shown later in chapter \vref{chapter:eval_resnext}.
+We train the ResNeXt with a batch size of 32 (like in the original paper) and perform 35 epochs. To calculate the loss we use Binary Cross Entropy but with Logits as recommended for mixed precision training which uses the log-sum-exp trick to improve the numerical stability and avoid loss terms that cannot be represented by half precision \autocite{pytorch_team_automatic_nodate}. The loss numbers for the training and validation loss can be seen in \vref{fig:resnet_loss}. It can be seen that in the end some overfit occurs where the train loss keeps decreasing and the validation loss stays mostly constant or even increases very slightly. In the end we still decided to use the model after 35 epochs since the loss figures are very good and it also evaluates very well as will be shown later in chapter \vref{chapter:eval_resnext}.
 
 \begin{figure*}
 	\centering
@@ -81,12 +81,12 @@ The \acl{YOLO} (\ac{YOLO}) model originally proposed in \autocite{yoloOriginal} 
 for predicting which enables the model to implicitly encode context information about the objects. With this, the model is capable of learning the typical shape and size of objects, which objects are likely to occur together and what typical positions objects have in relation to other objects. The initial idea was to provide a object detection network that achieves both, high quality and high inference speed. The authors claim that their \ac{YOLO} model can be up to 1000 times faster than \ac{R-CNN} and up to 100 times faster than Faster \ac{R-CNN}.
 Since its initial introduction, the \ac{YOLO} model was adapted in many research problems and has been improved in several follow-up works \autocite{yolov2} \autocite{yolov3} to finally come up with the newest version \textit{V4} \autocite{yolov4}.
 In general, a \ac{YOLO} model consist of three main pieces:
-\begin{enumerate}
+\begin{itemize}
 	\item The backbone, similar to the Faster \ac{R-CNN}, this is a deep \ac{CNN} that learns image features at different angularities. In their original paper, the authors used a backbone named \textit{Darknet} that is a neural network consisting of 53 convolution
 	layers \autocite{yolov3}. However this was substituted with a CSPNet \autocite{wang2020cspnet} since \textit{V4} \autocite{yolov4}.
 	\item The neck, that is a series of layers which combine features of different convolution layers. Since \textit{V4} the PANet \autocite{tan2020efficientdet} neck is used for this part of the model. 
 	\item The head, that part consumes the features from the neck and processes them further for the final box, confidence and class prediction.
-\end{enumerate}
+\end{itemize}
 The \ac{YOLO} model divides each input image of size $512\times512$ into a $G\times G$ grid, where a grid cell is \enquote{responsible} for an object if it contains the objects' center point. Each grid cell predicts bounding boxes using predefined anchors and corresponding confidence scores that indicate how likely it is that the box contains an object and how well the box fits to the object. For each bounding box a confidence score is predicted using logistic regression. Unlike in \ac{R-CNN}, the \ac{YOLO} model does not predict an offset coordinates for predefined anchors, it rather predicts the location coordinates relative to the center of a grid cell which constraints the coordinates to fall between 0 and 1. This helps the network to learn the parameters more easy. Therefore, the model prediction for a bounding box is a quintuple $(t_x,t_y,t_w,t_h,c)$ consisting of four coordinates and one for the object confidence (also called \enquote{objectness}), where $t_x$ and $t_y$ are the normalized center coordinates of the bounding box. As illustrated in figure \ref{fig:yolo_box}, the model predicts the width and height of the bounding box as offsets from center coordinates of the box and anchors given the offset from the grid cell to the top left image corner ($c_x$,$c_y$) and the anchor width and height ($p_w$,$p_h$) \autocite{yolov2} \autocite{yolov3}.
 \begin{figure*}[h!]
 	\centering
@@ -99,39 +99,48 @@ The model will produce outputs at different scales and depending on the number o
 
 
 \subsection*{Training of the \ac{YOLO} model}
+For our implementation, we decided to use a model provided by \autocite{yolov5} which is called unofficially YOLO \textit{V5} which is based on the YOLO \textit{V4} with some improvements in speed and quality. For our model configuration we used the \textit{yolov5l} model from \autocite{yolov5}.
 
-For our implementation, we decided to use a model provided by \autocite{yolov5} which is called unofficially YOLO \textit{V5} which is based on the YOLO \textit{V4} with some improvements in speed and quality. 
+Similar to \autocite{CoronaDLTransfer} and  \autocite{mangal2020covidaid}, we found that there are not enough data available to achieve state-of-the-art results which is why we use a transfer-learning approach with pretrained weights on the COCO dataset, leading to a performance boost in terms of our selected metrics (see \vref{chapter:eval_rcnn_yolo} for further details). Furthermore, we did a second pretraining step, where we used the RSNA pneumonia detection dataset described in \vref{data:rsna}, to adjust the initial COCO-weights in the direction of medical lung images by training the model for 40 epochs. Despite that the objective is different (detecting pneumonia instead of COVID-19), both datasets share many things like the prediction of just one class called \textit{opacity}. We could see an increased performance in the evaluation if we do such a pretraining. The final model is then ultimately trained for 30 epochs on the SIIM COVID-19 data.
 
-We found that if we use pretrained weights on the COCO dataset for the model, we get a performance boost in terms of our selected metrics (see \vref{chapter:eval_rcnn_yolo} for further details). In addition, we did a pretraining for the model before we trained it to the SIIM COVID-19 dataset. For this we used the RSNA pneumonia detection dataset described in \vref{data:rsna}.
+As already mentioned in the Faster \ac{R-CNN} training, we did several experiments implementing alternative regression losses for the bounding box predictions. In the \ac{YOLO} paper the authors use a \ac{MSE} regression loss to train the bounding box output. However, as \citeauthor{giou} \autocite{giou} report in their work, there is not a strong correlation between minimizing the \ac{MSE} and improving the \ac{IoU} value. In addition the authors concern that the evaluation of the model is mostly done using \ac{IoU}-based metrics whereas the training is performed by minimizing a \ac{MSE} loss.
 
+Instead, the authors proposed to use a more appropriate loss they call \ac{GIoU} loss. There exist several extensions like the previously described \ac{CIoU} loss \autocite{zheng_enhancing_2021} or \ac{DIoU} loss \autocite{DIoU}.
+The objectness and class confidence predictions were trained using a Binary Cross Entropy with Logits loss. The final loss is then a weighted sum of all the three single losses:
+\begin{align}
+	\mathcal{L}_{total} = 0.1 * \mathcal{L}_{box} + 0.5 * \mathcal{L}_{class} + 1.0 * \mathcal{L}_{objectness}
+\end{align} 
 
-We applied the same learning rate scheduling for all trainings  of the \ac{YOLO} model  
-\textbf{dann training beschreiben + alle tricks - warmup, multilabel, GIOU \autocite{giou} }
+For the training process, we used a similar setup like in the Faster \ac{R-CNN} training including a \ac{SGD}-based optimizer with a start learning rate of $lr_{initial} = 0.01$, a learning rate scheduling as described in \ref{eq:scheduler} and an input image size of $512 \times 512$. Because of VRAM constrains in our hardware, we could only use a batch size of 3 but we used a gradient accumulation based on a nominal batch size of 64.
+ 
+Similar to the Faster \ac{R-CNN} we applied several image transformations as augmentation technique, that include:
+\begin{itemize}
+	\item 1. Augmentation
+	\item 2. Augmentation
+\end{itemize}
 
+The losses for the pretraining and actual COVID-19 training are illustrated in figure \ref{fig:yolo_losses}. For the pretraining, we can see a slight increase of the validation loss after about 25 epochs. This may be caused by overfitting. On the other hand the loss for the actual training has some strange pattern: The validation loss is always smaller than the train loss, which may be caused by one of the following facts:
+\begin{enumerate}
+	\item validation set to small
+	\item regularization/dropout which is not active during validation
+	\item validation loss is measured after each epoch, whereas train loss is measured during epochs, which means that there is a shift in model performance.
+	\item Data augmentation during training
+\end{enumerate}
 
-\begin{figure}[!htb]
+\begin{figure}[h!]
 	\centering
 	\begin{minipage}{.5\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{img/loss_yolo_30.png}
-		\caption{$dt=0.1$}
-		\label{fig:prob1_6_2}
 	\end{minipage}%
 	\begin{minipage}{0.5\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{img/loss_yolo_giou_40_siim.png}
-		\caption{$dt =$}
-		\label{fig:prob1_6_1}
 	\end{minipage}
+\caption{Train and validation loss for the pretraining on the RSNA datset (left) and the SIIM COVID-19 datset (right).}
+\label{fig:yolo_losses}
 \end{figure}
-
-%\begin{figure*}[h!]
-%	\centering
-%	\includegraphics[width=.7\linewidth]{img/loss_yolo_30.png}
-%	\caption{Loss figures of the \ac{YOLO} pretraining}
-%	\label{fig:yolo_pretraining_loss}
-%\end{figure*}
-
+\newpage
 \section{Combining detections}
 \sectionauthor{Julian Seibel}
 For our final COVID-19 detection, we decided to combine the two described models in an ensemble predictor to combine both advantages of the models and also to create a more stable bounding-box prediction considering both the outputs. For this we created a weighted box fusion following the approach of \citeauthor{weightedBoxFusion} \autocite{weightedBoxFusion}, where we get a final bounding box prediction given the predictions of each model.
@@ -152,7 +161,9 @@ If all predicted boxes in $B$ are processed, confidence scores in $F$ will be re
 	c = c * \frac{min(T,M)}{M}
 \end{align}
 In our final version, we set the weights for the box fusion $w_{fusion} = (1,1)$ meaning that each model contributes the same to the final prediction.
+As fusion-criteria we set an \ac{IoU}-threshold for both predictions to $IoU_{fusion} = 0.55$ which was also the best experienced parameter value described in the original paper \autocite{weightedBoxFusion}.
 We did not apply any training process to the ensemble model, but it would be interesting to train the ensemble approach in an end to end fashion. However, we do not have the computational resources available to jointly train both detection models.
+
 
 
 \section{Study-Level model}

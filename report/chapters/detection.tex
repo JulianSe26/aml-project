@@ -103,17 +103,18 @@ For our implementation, we decided to use a model provided by \autocite{yolov5} 
 
 Similar to \autocite{CoronaDLTransfer} and  \autocite{mangal2020covidaid}, we found that there are not enough data available to achieve state-of-the-art results which is why we use a transfer-learning approach with pretrained weights on the COCO dataset, leading to a performance boost in terms of our selected metrics (see \vref{chapter:eval_rcnn_yolo} for further details). Furthermore, we did a second pretraining step, where we used the RSNA pneumonia detection dataset described in \vref{data:rsna}, to adjust the initial COCO-weights in the direction of medical lung images by training the model for 40 epochs. Despite that the objective is different (detecting pneumonia instead of COVID-19), both datasets share many things like the prediction of just one class called \textit{opacity}. We could see an increased performance in the evaluation if we do such a pretraining. The final model is then ultimately trained for 30 epochs on the SIIM COVID-19 data.
 
-As already mentioned in the Faster \ac{R-CNN} training, we did several experiments implementing alternative regression losses for the bounding box predictions. In the \ac{YOLO} paper the authors use a \ac{MSE} regression loss to train the bounding box output. However, as \citeauthor{giou} \autocite{giou} report in their work, there is not a strong correlation between minimizing the \ac{MSE} and improving the \ac{IoU} value. In addition the authors concern that the evaluation of the model is mostly done using \ac{IoU}-based metrics whereas the training is performed by minimizing a \ac{MSE} loss.
+As already mentioned in the Faster \ac{R-CNN} training, we did several experiments implementing alternative regression losses for the bounding box predictions. In the \ac{YOLO} paper the authors use a \ac{MSE} regression loss to train the bounding box output. However, as \citeauthor{giou} \autocite{giou} report in their work, there is not a strong correlation between minimizing the \ac{MSE} and improving the \ac{IoU} value. Since a plain \ac{IoU}-based loss would not consider the actual distance of a prediction to a ground truth box, meaning that if there is no intersection, the \ac{IoU} value would be zero and not differentiate between predictions that are close to the ground truth and predictions that are far away from the ground truth.
+In addition the authors concern that the evaluation of the model is mostly done using \ac{IoU}-based metrics whereas the training is performed by minimizing a \ac{MSE} loss.
 
-Instead, the authors proposed to use a more appropriate loss they call \ac{GIoU} loss. There exist several extensions like the previously described \ac{CIoU} loss \autocite{zheng_enhancing_2021} or \ac{DIoU} loss \autocite{DIoU}.
+Therefore the authors proposed to use a more appropriate loss they call \ac{GIoU} loss that uses the smallest convex hull of both bounding boxes to encode their relationship also in terms of distance. There exist several extensions like the previously described \ac{CIoU} loss \autocite{zheng_enhancing_2021} or \ac{DIoU} loss \autocite{DIoU}. For our final model, we experienced best results using the \ac{GIoU} loss proposed by \citeauthor{giou}.
 The objectness and class confidence predictions were trained using a Binary Cross Entropy with Logits loss. The final loss is then a weighted sum of all the three single losses:
 \begin{align}
-	\mathcal{L}_{total} = 0.1 * \mathcal{L}_{box} + 0.5 * \mathcal{L}_{class} + 1.0 * \mathcal{L}_{objectness}
+	\mathcal{L}_{total} = 0.075 * \mathcal{L}_{box} + 0.05 * \mathcal{L}_{class} + 0.75* \mathcal{L}_{objectness}
 \end{align} 
 
-For the training process, we used a similar setup like in the Faster \ac{R-CNN} training including a \ac{SGD}-based optimizer with a start learning rate of $lr_{initial} = 0.01$, a learning rate scheduling as described in \ref{eq:scheduler} and an input image size of $512 \times 512$. Because of VRAM constrains in our hardware, we could only use a batch size of 3 but we used a gradient accumulation based on a nominal batch size of 64.
+For the training process, we used a similar setup like in the Faster \ac{R-CNN} training including a \ac{SGD}-based optimizer with a start learning rate of $lr_{initial} = 0.01$ and momentum of 0.937, a learning rate scheduling as described in \ref{eq:scheduler} and an input image size of $512 \times 512$. Because of VRAM constrains in our hardware, we could only use a batch size of 3 (excluding augmentations) but we used a gradient accumulation based on a nominal batch size of 64.
  
-Similar to the Faster \ac{R-CNN} we applied several image transformations as augmentation technique, that include:
+Similar to the Faster \ac{R-CNN} we applied several image transformations as augmentation technique, which include:
 \begin{itemize}
 	\item 1. Augmentation
 	\item 2. Augmentation
@@ -140,6 +141,8 @@ The losses for the pretraining and actual COVID-19 training are illustrated in f
 \caption{Train and validation loss for the pretraining on the RSNA datset (left) and the SIIM COVID-19 datset (right).}
 \label{fig:yolo_losses}
 \end{figure}
+
+
 \newpage
 \section{Combining detections}
 \sectionauthor{Julian Seibel}

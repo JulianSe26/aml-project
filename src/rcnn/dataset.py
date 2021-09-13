@@ -9,7 +9,7 @@ from albumentations.pytorch import ToTensorV2
 import torch
 
 class ChestCocoDetection(CocoDetection): 
-    def __init__(self, root, ann_file, training=True): 
+    def __init__(self, root, ann_file, training=True, image_size=1024): 
         super(ChestCocoDetection, self).__init__(root, ann_file) 
         self.training = training
 
@@ -28,7 +28,7 @@ class ChestCocoDetection(CocoDetection):
             ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['category_ids']))
         else:
             self._transforms = A.Compose([
-                    A.Resize(1024, 1024),
+                    A.Resize(image_size, image_size),
                     A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                     ToTensorV2()
             ], bbox_params=A.BboxParams(format='pascal_voc', label_fields=['category_ids']))

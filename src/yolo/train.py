@@ -18,7 +18,7 @@ from pathlib import Path
 from utils.torch_utils import intersect_dicts
 
 
-PRETRAINING = True
+PRETRAINING = False
 GIOU = False
 BACKBONE = True
 '''=========================PRETRAINING====================================='''
@@ -38,10 +38,10 @@ BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_pretrained/yolov5_epoch_30.pt"
 '''
 VALDIATION_FREQUENCY = 1
 SAVE_FREQUENCY = 1 # in epochs
-SCHEDULER_REDUCE_FREQUENCY = 1 # in epochs
+SCHEDULER_REDUCE_FREQUENCY = 2 # in epochs
 LOSS_REPORT_FREQUENCY = 200
 NUMBER_DATALOADER_WORKERS = 10
-EPOCHS = 42
+EPOCHS = 100
 BATCH_SIZE = 3
 IMG_SIZE = 512
 NUMBER_OF_CLASSES = 1
@@ -105,7 +105,7 @@ else:
 
 if __name__ == '__main__':
 
-    print(f' Starting training with the following configuration: \n PRETRAINING={PRETRAINING}\n GIOU={GIOU}\nBACKBONE={BACKBONE}')
+    print(f' Starting training with the following configuration: \n PRETRAINING={PRETRAINING}\n GIOU={GIOU}\n BACKBONE={BACKBONE}')
 
     if PRETRAINING:
         data_folder_train = RSNA_TRAIN_PATH
@@ -186,7 +186,7 @@ if __name__ == '__main__':
                                             hyp=HYPER_PARAMETERS, augment=True, cache=True, workers= NUMBER_DATALOADER_WORKERS,
                                             prefix=colorstr('train: '))
     validation_loader, validation_dataset = create_dataloader(data_folder_validation, imgsz, BATCH_SIZE, gs, True,
-                                            hyp=HYPER_PARAMETERS, augment=False, cache=True, workers= NUMBER_DATALOADER_WORKERS, rect=True,
+                                            hyp=HYPER_PARAMETERS, augment=True, cache=True, workers= NUMBER_DATALOADER_WORKERS, rect=True,
                                             pad=.5, prefix=colorstr('val: '))
 
     print("data loading done..")
@@ -201,6 +201,7 @@ if __name__ == '__main__':
     HYPER_PARAMETERS['cls'] *= NUMBER_OF_CLASSES / 80. * 3. / nl 
     HYPER_PARAMETERS['obj'] *= (imgsz / IMG_SIZE) ** 2 * 3. / nl 
     HYPER_PARAMETERS['label_smoothing'] = 0.0
+    print(f"using loss factors: {HYPER_PARAMETERS['box']}, {HYPER_PARAMETERS['cls']}, {HYPER_PARAMETERS['obj']}")
     model.nc = NUMBER_OF_CLASSES 
     model.hyp = HYPER_PARAMETERS 
     model.gr = 1.0  # iou loss ratio (obj_loss = 1.0 or iou)

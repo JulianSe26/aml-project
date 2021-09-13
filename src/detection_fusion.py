@@ -1,4 +1,5 @@
 import sys
+from cv2 import transform
 sys.path.append('./yolo')
 import torch
 import torch
@@ -6,10 +7,10 @@ from ensemble_boxes import weighted_boxes_fusion
 from rcnn.model import ChestRCNN
 from yolo.yolo import Model
 import torch
-from torchvision import transforms
 from torchvision.ops import nms
 from PIL import Image
 from yolo.utils.general import non_max_suppression
+from torchvision import transforms
 
 
 class EnsembleModel():
@@ -39,16 +40,15 @@ class EnsembleModel():
 
         return boxes_out
 
-    def inference_rcnn(self,img: Image):
+    def inference_rcnn(self,img: torch.Tensor):
 
-        img_resized = img.resize((self.inference_size, self.inference_size), Image.ANTIALIAS)
-
-        tensor_img = transforms.ToTensor()(img_resized).unsqueeze_(0)
         with torch.inference_mode():
-            out = self.fasterRcnn(tensor_img)
+            out = self.fasterRcnn(img)
             out_indices = nms(boxes = out[0]['boxes'], scores=out[0]['scores'], iou_threshold=self.iou_threshold_nms)
             out_boxes = torch.index_select(out[0]['boxes'], 0, out_indices).detach().numpy()
-            out_scores = torch.index_select(out[0]['scores'], 0, out_indices).detach().tolist()
+            out_scores = torch.index_select(out[0]['scores'], 0, out_indices).detach().numpy()
+            out_boxes = out_boxes[out_scores >= self.confidence_threhsold_nms]
+            out_scores = out_scores[out_scores >= self.confidence_threhsold_nms]
 
         ret_boxes = []
         ret_scores = []
@@ -64,14 +64,12 @@ class EnsembleModel():
         return self.refine_det(ret_boxes), ret_scores, ret_labels
 
 
-    def inference_yolo(self,img: Image):
-        img_resized = img.resize((self.inference_size, self.inference_size), Image.ANTIALIAS)
+    def inference_yolo(self,img: torch.Tensor):
 
-        tensor_img = transforms.ToTensor()(img_resized).unsqueeze_(0)
-        #tensor_img /= 255
+        img /= 255
 
         with torch.inference_mode():
-            prediction = self.yolo(tensor_img,augment=True)[0]
+            prediction = self.yolo(img,augment=True)[0]
 
         prediction = non_max_suppression(prediction, self.confidence_threhsold_nms, self.iou_threshold_nms, classes=None)[0]
         out_boxes = prediction[:,:4].detach().numpy()
@@ -90,20 +88,18 @@ class EnsembleModel():
 
         return self.refine_det(ret_boxes), ret_scores, ret_labels
 
-    def detection_fusion(self,img, extended_output=False):
-
-        img = img.convert('RGB')
-
+    def detection_fusion(self,img:torch.Tensor, extended_output=False):
+        
         #gather image information
-        orig_width, orig_height = img.size
+        orig_width, orig_height = img.shape[2], img.shape[3]
 
         self.yolo.eval()
         self.fasterRcnn.eval()
 
+
         # inference 
         frcnn_boxes, frcnn_scores, frcnn_labels = self.inference_rcnn(img)
         yolo_boxes, yolo_scores, yolo_labels = self.inference_yolo(img)
-        #print(f'YOLO results: {yolo_scores}, {yolo_labels}')
 
         boxes = [frcnn_boxes, yolo_boxes]
         scores = [frcnn_scores , yolo_scores]
@@ -111,10 +107,14 @@ class EnsembleModel():
         labels = [frcnn_labels, yolo_labels]
         
         weights = [1,1]
+     
         boxes, scores, labels = weighted_boxes_fusion(boxes, scores, labels, weights=weights, iou_thr=self.iou_threshold_fusion)
         boxes = boxes.clip(0,1)
 
-        #TODO: maybe perform NMS again ?
+        boxes_indices = nms(torch.tensor(boxes), torch.tensor(scores), self.iou_threshold_nms)
+        boxes = torch.index_select(torch.tensor(boxes),0, boxes_indices).detach().tolist()
+        scores = torch.index_select(torch.tensor(scores), 0, boxes_indices).detach().tolist()
+        labels = torch.index_select(torch.tensor(labels), 0, boxes_indices).detach().tolist()
 
         # scale box back to original size
         boxes = self.scale_boxes_to_size(orig_width, orig_height, boxes)
@@ -136,7 +136,8 @@ if __name__ == "__main__":
     RESNET_BACKBONE_PATH = "./resnet/models/resnext101_32x8d_epoch_35.pt"
     SAMPLE_DATA = '../data/siim-covid19-detection/data/test/00a81e8f1051/bdc0bb04ae1e/ced40f593496.png'
 
-    img = Image.open(SAMPLE_DATA)
+    img = Image.open(SAMPLE_DATA).convert("RGB")
+    img_resized = img.resize((512, 512), Image.ANTIALIAS)
     yolov5_weights = torch.load(YOLO_FINAL_MODEL_PATH)
     fasterrcnn_r101_weights = torch.load(FASTER_RCNN_FINAL_MODEL_PATH)
 
@@ -145,4 +146,4 @@ if __name__ == "__main__":
 
     fasterRcnn = ChestRCNN(RESNET_BACKBONE_PATH)
     fasterRcnn.load_state_dict(fasterrcnn_r101_weights)
-    print(EnsembleModel(fasterRcnn=fasterRcnn, yolo=yolo).detection_fusion(img))
+    print(EnsembleModel(fasterRcnn=fasterRcnn, yolo=yolo).detection_fusion(transforms.ToTensor()(img_resized).unsqueeze_(0)))

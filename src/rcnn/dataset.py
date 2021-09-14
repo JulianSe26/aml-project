@@ -2,6 +2,7 @@ from albumentations.augmentations.crops.transforms import RandomSizedBBoxSafeCro
 from albumentations.augmentations.geometric.transforms import ShiftScaleRotate
 from albumentations.augmentations.transforms import Blur, Cutout, HorizontalFlip, RandomBrightnessContrast, Sharpen
 from albumentations.core.composition import OneOf
+from cv2 import transform
 import numpy as np
 from torchvision.datasets import CocoDetection
 import albumentations as A
@@ -9,10 +10,10 @@ from albumentations.pytorch import ToTensorV2
 import torch
 
 class ChestCocoDetection(CocoDetection): 
-    def __init__(self, root, ann_file, training=True, image_size=1024): 
+    def __init__(self, root, ann_file, training=True, image_size=1024, detection_fusion=False): 
         super(ChestCocoDetection, self).__init__(root, ann_file) 
         self.training = training
-
+        self.detection_fusion = detection_fusion
         # We use albumentations here because they have support for the transformation
         # of bounding boxes per default unlike the torchvision transforms
         if self.training:
@@ -38,6 +39,8 @@ class ChestCocoDetection(CocoDetection):
         img, target_raw = super(ChestCocoDetection, self).__getitem__(idx) 
         image_id = self.ids[idx] 
 
+        path = self.coco.loadImgs(image_id)[0]["file_name"]
+
         if len(target_raw) == 0:
             boxes = np.array([]).reshape(0,4)
             cats = np.array([])
@@ -60,4 +63,8 @@ class ChestCocoDetection(CocoDetection):
             target['labels'] = torch.tensor(cats, dtype=torch.int64)
         if not self.training:
             target['size'] = torch.tensor(img.size, dtype=torch.int16)
-        return transformed['image'], target
+            
+        if self.detection_fusion:
+            return transformed['image'], target, path
+        else:
+            return transformed['image'], target

@@ -112,12 +112,14 @@ The objectness and class confidence predictions were trained using a Binary Cros
 	\mathcal{L}_{total} = 0.075 * \mathcal{L}_{box} + 0.05 * \mathcal{L}_{class} + 0.75* \mathcal{L}_{objectness}
 \end{align} 
 
-For the training process, we used a similar setup like in the Faster \ac{R-CNN} training including a \ac{SGD}-based optimizer with a start learning rate of $lr_{initial} = 0.01$ and momentum of 0.937, a learning rate scheduling as described in \ref{eq:scheduler} and an input image size of $512 \times 512$. Because of VRAM constrains in our hardware, we could only use a batch size of 3 (excluding augmentations) but we used a gradient accumulation based on a nominal batch size of 64.
+For the training process, we used a similar setup like in the Faster \ac{R-CNN} training including a \ac{SGD}-based optimizer with a start learning rate of $lr_{initial} = 0.01$ and momentum of 0.937, a learning rate scheduling as described in \ref{eq:scheduler} and an input image size of $512 \times 512$. Because of VRAM constrains in our hardware, we could only use a batch size of 3 (excluding augmentations) but we used a gradient accumulation based on a nominal batch size of 64, this has the effect that the optimizer and scaler only updates if the nominal batch is over rather than the limited physical batch.
+Furthermore we applied 1000 warm-up iterations.
  
 Similar to the Faster \ac{R-CNN} we applied several image transformations as augmentation technique, which include:
 \begin{itemize}
-	\item 1. Augmentation
-	\item 2. Augmentation
+	\item Image transformations like flipping up-down and left-right
+	\item Augmentation of the image and color space
+	\item Mixup \autocite{zhang2017mixup}
 \end{itemize}
 
 The losses for the pretraining and actual COVID-19 training are illustrated in figure \ref{fig:yolo_losses}. For the pretraining, we can see a slight increase of the validation loss after about 25 epochs. This may be caused by overfitting. On the other hand the loss for the actual training has some strange pattern: The validation loss is always smaller than the train loss, which may be caused by one of the following facts:
@@ -164,7 +166,7 @@ If all predicted boxes in $B$ are processed, confidence scores in $F$ will be re
 	c = c * \frac{min(T,M)}{M}
 \end{align}
 In our final version, we set the weights for the box fusion $w_{fusion} = (1,1)$ meaning that each model contributes the same to the final prediction.
-As fusion-criteria we set an \ac{IoU}-threshold for both predictions to $IoU_{fusion} = 0.55$ which was also the best experienced parameter value described in the original paper \autocite{weightedBoxFusion}.
+As fusion-criteria we set an \ac{IoU}-threshold for both predictions to $IoU_{fusion} = 0.55$ which was also the best experienced parameter value described in the original paper \autocite{weightedBoxFusion}. In a last step, we do again non maximum suppression of the fusion boxes to obtain our final ensemble result. 
 We did not apply any training process to the ensemble model, but it would be interesting to train the ensemble approach in an end to end fashion. However, we do not have the computational resources available to jointly train both detection models.
 
 

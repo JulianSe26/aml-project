@@ -204,7 +204,7 @@ if __name__ == '__main__':
     print(f"using loss factors: {HYPER_PARAMETERS['box']}, {HYPER_PARAMETERS['cls']}, {HYPER_PARAMETERS['obj']}")
     model.nc = NUMBER_OF_CLASSES 
     model.hyp = HYPER_PARAMETERS 
-    model.gr = 1.0  # iou loss ratio (obj_loss = 1.0 or iou)
+    model.gr = 1.0 
     model.class_weights = labels_to_class_weights(train_dataset.labels, NUMBER_OF_CLASSES).to(device) * NUMBER_OF_CLASSES 
     model.names = ['opacity'] 
 
@@ -237,7 +237,7 @@ if __name__ == '__main__':
             ni = i + nb * epoch  # number integrated batches (since train start)
             imgs = imgs.to(device, non_blocking=True).float() / 255.0 # scale images
 
-             # Warmup
+             # Warmup iterations
             if ni <= number_warmups:
                 xi = [0, number_warmups]  # x interp
                 accumulate = max(1, np.interp(ni, xi, [1, nbs / BATCH_SIZE]).round())
@@ -247,7 +247,7 @@ if __name__ == '__main__':
                     if 'momentum' in x:
                         x['momentum'] = np.interp(ni, xi, [HYPER_PARAMETERS["warmup_momentum"], HYPER_PARAMETERS["momentum"]])
 
-            # Multi-scale
+            # YOLO Multi-scale
             if MULTI_SCALE:
                 sz = random.randrange(imgsz * 0.5, imgsz * 1.5 + gs) // gs * gs  # size
                 sf = sz / max(imgs.shape[2:])  # scale factor

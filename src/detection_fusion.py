@@ -1,5 +1,4 @@
 import sys
-from cv2 import transform
 sys.path.append('./yolo')
 import torch
 import torch
@@ -66,8 +65,6 @@ class EnsembleModel():
 
     def inference_yolo(self,img: torch.Tensor):
 
-        img /= 255
-
         with torch.inference_mode():
             prediction = self.yolo(img,augment=True)[0]
 
@@ -88,7 +85,7 @@ class EnsembleModel():
 
         return self.refine_det(ret_boxes), ret_scores, ret_labels
 
-    def detection_fusion(self,img:torch.Tensor, extended_output=False):
+    def detection_fusion(self,img:torch.Tensor, yolo_img, extended_output=False):
         
         #gather image information
         orig_width, orig_height = img.shape[2], img.shape[3]
@@ -96,10 +93,9 @@ class EnsembleModel():
         self.yolo.eval()
         self.fasterRcnn.eval()
 
-
         # inference 
         frcnn_boxes, frcnn_scores, frcnn_labels = self.inference_rcnn(img)
-        yolo_boxes, yolo_scores, yolo_labels = self.inference_yolo(img)
+        yolo_boxes, yolo_scores, yolo_labels = self.inference_yolo(yolo_img)
 
         boxes = [frcnn_boxes, yolo_boxes]
         scores = [frcnn_scores , yolo_scores]

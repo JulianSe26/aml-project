@@ -4,6 +4,19 @@
 \section{NIH Data}\label{data:nih}
 \sectionauthor{Written by Tobias Richstein}
 
+The first of the datasets that we used to train our models comes from the \acf{NIH}, a division of the U.S. Department of Health, and is a collection of over 100 thousand chest X-ray images by over 30 thousand patients presented by \citeauthor{wang_chestx-ray8_2017} in \autocite{wang_chestx-ray8_2017}. This dataset was published in 2017 and is therefore not concerned with COVID-19 patients at all. Rather it consists of images depicting 14 different illnesses and images of healthy patients. The authors claim that there is a large amount of data in the form of patient X-rays and corresponding findings available in hospital's archiving systems but that these have not been properly consolidated and catalogued across multiple hospitals and states before. The authors also claim that the findings are mostly embedded in sentences making them not easily machine-readable.
+
+To overcome these issues, the authors collected the images from different hospitals and used natural language processing to extract the medical findings from the written reports associated with the images. In the initial dataset this included eight different illnesses: Atelectasis, Cardiomegaly, Effusion, Infiltration, Mass, Nodule, Pneumonia and Pneumothorax as well as images with no finding at all. Later, the dataset was updated to the 15 class form (14 illnesses and no findings) that we use for our project to also include Consolidation, Edema, Emphysema, Fibrosis, Pleural Thickening and Hernia as findings. The class distribution can be seen in figure \vref{fig:nih_classes} where it is clear that the classes are very disproportionally represented. There is a total of $141,537$ diagnoses, meaning each image has an average of roughly $1.26$ labels associated. This number is skewed however since if anything is found then the average goes up to $1.56$ since no finding always means that only this one label is attached to a record.
+
+\begin{figure*}
+	\centering
+	\includegraphics[width=.8\linewidth]{img/nih_class_distribution.png}
+	\caption{Class distribution in the NIH dataset}
+	\label{fig:nih_classes}
+\end{figure*}
+
+The images in the dataset are given in the PNG format and are all sized $1024 \times 1024$ and with RGB color channels. The dataset does have roughly six thousand entries for bounding boxes for some of the images but those are not really of use to us since there are so few and also because the value of this dataset lies somewhere else for us: The training of our backbone network for one of the object detection networks (more on that in section \vref{chapter:rcnn}). We can use this dataset to train the backbone on images that are roughly within the problem domain that we actually want to tackle so that the feature vectors that it produces are valuable to the actual object detection network. 
+
 \section{RSNA Data}\label{data:rsna}
 \sectionauthor{Written by Julian Seibel}
 

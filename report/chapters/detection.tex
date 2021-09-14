@@ -2,7 +2,7 @@
 \chapter{COVID-19 Detection}\label{chapter:detection}
 
 
-\section{Faster R-CNN}
+\section{Faster R-CNN}\label{chapter:rcnn}
 \sectionauthor{Written by Tobias Richstein}
 
 The Faster R-CNN network architecture proposed in \autocite{ren_faster_2016} by \citeauthor{ren_faster_2016} is an evolutionary step in a line of \acp{R-CNN} which are \acp{CNN} that can perform object detection on images. When given an image, an \ac{R-CNN} is able to predict bounding boxes for detected objects and also classify them. Each predicted bounding box is also given a confidence score that expresses how reliable the model assumes this result is. State of the art Faster \acp{R-CNN} achieve \ac{mAP} scores with a $0.5$ \ac{IoU} threshold of $0.484$ on a reference COCO object detection validation set making it very well suitable for all kinds of detection tasks such as the one at hand. 
@@ -32,7 +32,7 @@ where $t$ is the current learning rate scheduler step and $T$ is the total numbe
 \begin{figure*}[h!]
 	\centering
 	\includegraphics[width=.6\linewidth]{img/LR.png}
-	\caption{Learning rate schedule applied for training the detection models.}
+	\caption{Exemplary learning rate schedule for 70 epochs applied during training of the detection models.}
 	\label{fig:lr_schedule}
 \end{figure*}
 

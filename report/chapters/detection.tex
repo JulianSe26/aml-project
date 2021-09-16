@@ -21,7 +21,7 @@ Building upon \textit{ResNet}, \citeauthor{xie_aggregated_2017} propose \textit{
 
 \subsection*{Training of the backbone}
 
-First we trained the ResNeXt network to have a performant backbone that the Faster \ac{R-CNN} can utilize. A reference ResNeXt model architecture and implementation can be obtained directly from the makers of PyTorch \autocite{pytorch_team_resnext_nodate}, which we did. This reference implementation has also been pre-trained on the ImageNet dataset, meaning that we only fine-tune the weights to our use-case. We train the model on the NIH dataset described in section \vref{data:nih} and only expect it to predict the classes of illnesses that can be seen in the X-rays. We encode the ground truths, consisting of the 14 classes of the NIH dataset, as one-hot vectors and therefore also expect output tensors of the same dimension. Like in the original ResNeXt paper, we also use a \acf{SGD} optimizer that has Nesterov acceleration during training. Our learning rate decays over time and follows the equation given below which was originally proposed in \autocite{he_bag_2018} and modified slightly to provide a learning rate floor of $0.05 * \text{lr}_\text{initial}$: 
+First we trained the ResNeXt network to have a performant backbone that the Faster \ac{R-CNN} can utilize. A reference ResNeXt model architecture and implementation can be obtained directly from the makers of PyTorch \autocite{pytorch_team_resnext_nodate}, which we did. This reference implementation has also been pre-trained on the ImageNet dataset \autocite{deng_imagenet_2009}, meaning that we only fine-tune the weights to our use-case. We train the model on the NIH dataset described in section \vref{data:nih} and only expect it to predict the classes of illnesses that can be seen in the X-rays. We encode the ground truths, consisting of the 14 classes of the NIH dataset (plus one for \textit{No Finding}), as one-hot vectors and therefore also expect output tensors of the same dimension. Like in the original ResNeXt paper, we also use a \acf{SGD} optimizer that has Nesterov acceleration during training. Our learning rate decays over time and follows the equation given below which was originally proposed in \autocite{he_bag_2018} and modified slightly to provide a learning rate floor of $0.05 * \text{lr}_\text{initial}$: 
 
 \begin{align}\label{eq:scheduler}
 \text{lr}_t = \left(\frac{1}{2}\left(1 + \cos\left(\frac{t * \pi}{T}\right)\right) * 0.95 + 0.05\right) * \text{lr}_\text{initial}
@@ -32,7 +32,7 @@ where $t$ is the current learning rate scheduler step and $T$ is the total numbe
 \begin{figure*}[h!]
 	\centering
 	\includegraphics[width=.6\linewidth]{img/LR.png}
-	\caption{Exemplary learning rate schedule for 70 epochs applied during training of the detection models.}
+	\caption{Exemplary learning rate schedule for 35 epochs applied during training of the detection models.}
 	\label{fig:lr_schedule}
 \end{figure*}
 
@@ -44,7 +44,7 @@ As described in the ResNeXt paper we load the images and then perform the augmen
 	\item Normalize the RGB channels in range $0$ to $1$ to have a mean of $R=0.485; G=0.456; B=0.406$ and a standard deviation of $R=0.229; G=0.224; B=0.225$
 \end{itemize}
 
-To prevent overfitting during training we also randomly apply additional augmentations such as horizontal flips ($p=0.5$), random blurs ($p=0.3$), random rotations of up to 20° ($p=1$) or random erasing of between 1 and 10 percent of the image area ($p=0.3$).
+To prevent overfitting during training and essentially enlargen our dataset we also randomly apply additional augmentations such as horizontal flips ($p=0.5$), random blurs ($p=0.3$), random rotations of up to 20° ($p=1$) or random erasing of between 1 and 10 percent of the image area ($p=0.3$).
 
 Since we have somewhat limited hardware resources at our disposal in comparison to large scale compute clusters that are often used for such training tasks by researchers, we also apply a method called \textit{Autocasting} to speed up training and allow us to use larger batch sizes. The basis of Autocasting is the ability to use mixed precision during network training. While most frameworks such as PyTorch usually use 32bit floating point numbers (single precision) for all calculations, it has been shown that performing some operations with 16bit representations (half precision) does not penalize accuracy but provides a large speedup since more data can fit in the most often constrained GPU memory and the also constrained data transfer bandwidth can be used more effectively \autocite{micikevicius_mixed_2018}. The GPUs that we have at our disposal also feature special matrix multiplication hardware that works best with half precision numbers, meaning that we profit from mixed precision training in a significant way. The speedup for the ResNeXt training for example was almost twice as fast as before. The decision whether to perform operations at half precision is made automatically by PyTorch when the model is wrapped in an autocasting decorator.
 

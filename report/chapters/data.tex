@@ -20,7 +20,24 @@ The images in the dataset are given in the PNG format and are all sized $1024 \t
 \section{RSNA Data}\label{data:rsna}
 \sectionauthor{Written by Julian Seibel}
 
-Similar to the pre-training of the Faster \ac{R-CNN} backbone, we decided to utilize an additional dataset to also pre-train the \ac{YOLO} model
+Similar to the pretraining of the Faster \ac{R-CNN} backbone on the above described NIH dataset, we use the RSNA dataset \autocite{RSNAKaeggle} originally published as part of a two-stage Kaggle challenge in 2018. The dataset contains $30,227$ samples from $26,684$ different patients in form of $1024 \times 1024$ DICOM images. Despite the data was anonymized, for every patient there are meta-information available including sex, age and radiographic view. The images were labeled by radiologists from \ac{RSNA} and the Society of Thoracic Radiology. There are three mutual exclusive  labels possible (lung opacity, normal, no lung opacity/ not normal) whereas lung opacity describes a indicates evidence for pneumonia including also bounding box information for regions of interest in the format $(x_{min}, y_{min}, width, height)$. A positive image can contain multiple bounding boxes. Figure \ref{fig:rsna_classes} shows the class distribution for the \ac{RSNA} datasets. In total there are $9,555$ sample images that are labeled as positive and therefore come along with labeled regions in form of bounding boxes.
+
+The objective of this challenge was to train a model that is capable of correct classification including also bounding box predictions for each positive case and a confidence score, indicating the model confidence for a single bounding box prediction. The final submissions were evaluated using \ac{IoU} based metrics to measure the overlap of predicted and ground truth boxes. Figure \ref{fig:rsna_sample} shows an image from the \ac{RSNA} dataset including ground truth boxes (green), possible predictions (reds-dashed) and corresponding \ac{IoU} values.
+
+Since this challenge has a lot in common with the challenge we want to contribute to in this work and the image appearance is the exact same, namely DICOM images of chest X-rays, we decided to include this dataset as additional source for pretraining our models. In contrast to the \ac{NIH} dataset, the \ac{RSNA} data is rather small, but brings one major advantage with labels including ground truth bounding boxes for positive pneumonia cases which makes the data suitable for pretraining object detection models. With this, we also think there are semantic similarities in predicting pneumonia and COVID-19 regions, that we hope will positively affect our final model performance for ultimately detecting COVID-19 evidence. In detail, we used the positive cases for training our detection models to \enquote{introduce} the weights into the domain of medical X-ray chest images. For the meta-data of the patients however, we did not find any suitable purpose which is why we ignored this information in the further course of this work.
+
+\begin{figure*}
+	\begin{minipage}[b]{.65\linewidth} % [b] => Ausrichtung an \caption
+		\includegraphics[width=\linewidth]{img/rsna_class_distribution.png}
+		\caption{Class distribution in the RSNA dataset}
+		\label{fig:rsna_classes}
+	\end{minipage}
+	\begin{minipage}[b]{.35\linewidth} % [b] => Ausrichtung an \caption
+		\includegraphics[width=\linewidth]{img/rsna_sample.png}
+		\caption{Extracted from \autocite{rsnaSurvey}}
+		\label{fig:rsna_sample}
+	\end{minipage}
+\end{figure*}
 
 \section{SIIM COVID-19 Data}\label{data:siim}
 \sectionauthor{Written by Torben Krieger}

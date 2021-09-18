@@ -11,8 +11,6 @@
 
 @article{ren_faster_2016,
 	title = {Faster R-{CNN}: Towards Real-Time Object Detection with Region Proposal Networks},
-	shorttitle = {Faster R-{CNN}},
-	abstract = {State-of-the-art object detection networks depend on region proposal algorithms to hypothesize object locations. Advances like {SPPnet} and Fast R-{CNN} have reduced the running time of these detection networks, exposing region proposal computation as a bottleneck. In this work, we introduce a Region Proposal Network ({RPN}) that shares full-image convolutional features with the detection network, thus enabling nearly cost-free region proposals. An {RPN} is a fully convolutional network that simultaneously predicts object bounds and objectness scores at each position. The {RPN} is trained end-to-end to generate high-quality region proposals, which are used by Fast R-{CNN} for detection. We further merge {RPN} and Fast R-{CNN} into a single network by sharing their convolutional features---using the recently popular terminology of neural networks with 'attention' mechanisms, the {RPN} component tells the unified network where to look. For the very deep {VGG}-16 model, our detection system has a frame rate of 5fps (including all steps) on a {GPU}, while achieving state-of-the-art object detection accuracy on {PASCAL} {VOC} 2007, 2012, and {MS} {COCO} datasets with only 300 proposals per image. In {ILSVRC} and {COCO} 2015 competitions, Faster R-{CNN} and {RPN} are the foundations of the 1st-place winning entries in several tracks. Code has been made publicly available.},
 	journaltitle = {{arXiv}:1506.01497 [cs]},
 	author = {Ren, Shaoqing and He, Kaiming and Girshick, Ross and Sun, Jian},
 	date = {2016-01-06},
@@ -648,4 +646,39 @@ author = {Puck B. {van Kasteren} and Bas {van der Veer} and Sharon {van den Brin
 	pages={237--242},
 	year={2020},
 	organization={IEEE}
+}
+
+@article{lin_focal_2018,
+	title = {Focal Loss for Dense Object Detection},
+	journaltitle = {{arXiv}:1708.02002 [cs]},
+	author = {Lin, Tsung-Yi and Goyal, Priya and Girshick, Ross and He, Kaiming and Dollár, Piotr},
+	date = {2018-02-07},
+	eprinttype = {arxiv},
+	eprint = {1708.02002}
+}
+
+@article{liu_ssd_2016,
+	title = {{SSD}: Single Shot {MultiBox} Detector},
+	volume = {9905},
+	doi = {10.1007/978-3-319-46448-0_2},
+	pages = {21--37},
+	journaltitle = {{arXiv}:1512.02325 [cs]},
+	author = {Liu, Wei and Anguelov, Dragomir and Erhan, Dumitru and Szegedy, Christian and Reed, Scott and Fu, Cheng-Yang and Berg, Alexander C.},
+	date = {2016},
+	eprinttype = {arxiv},
+	eprint = {1512.02325},
+}
+
+@article{podder_efficient_2021,
+	title = {An efficient method of detection of {COVID}-19 using Mask R-{CNN} on chest X-Ray images},
+	volume = {8},
+	issn = {2377-9098},
+	url = {http://www.aimspress.com/article/doi/10.3934/biophy.2021022},
+	doi = {10.3934/biophy.2021022},
+	pages = {281--290},
+	number = {3},
+	journaltitle = {{AIMS} Biophysics},
+	author = {Podder, Soumyajit and Bhattacharjee, Somnath and Roy, Arijit and {Department of Electronics, West Bengal State University, Barasat, Kolkata, India 700126}},
+	urldate = {2021-09-18},
+	date = {2021}
 }

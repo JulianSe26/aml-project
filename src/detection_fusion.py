@@ -14,7 +14,7 @@ from torchvision import transforms
 
 class EnsembleModel():
 
-    def __init__(self, fasterRcnn:ChestRCNN, yolo:Model, inference_size = 512, iou_threshold_nms=.2, iou_threshold_fusion=.55, confidence_threshold_nms=.1):
+    def __init__(self, fasterRcnn:ChestRCNN, yolo:Model, inference_size = 512, iou_threshold_nms=.1, iou_threshold_fusion=.55, confidence_threshold_nms=.1):
         self.fasterRcnn = fasterRcnn
         self.yolo = yolo
         self.inference_size = inference_size

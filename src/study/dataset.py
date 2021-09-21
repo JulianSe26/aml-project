@@ -28,7 +28,7 @@ class StudyDataset(Dataset):
                     transforms.CenterCrop(224),
                     transforms.ToTensor(),
                     transforms.RandomErasing(p=.3, scale=(.01, .1)), # Randomly erase between 1 and 10% percent of the image in a rectangular area
-                    # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                 ])
         else:
             self.transform = transforms.Compose([
@@ -44,8 +44,8 @@ class StudyDataset(Dataset):
     def __getitem__(self, idx):
         data_row = self.merged_data.iloc[idx]
         image = self.transform(Image.open(data_row["file_path"]).convert("RGB"))
-        # return image, torch.from_numpy(np.squeeze((data_row.values[5:9])).astype(np.float32))
-        return image, np.argmax(data_row.values[5:9])
+        return image, torch.from_numpy(np.squeeze((data_row.values[5:9])).astype(np.float32))
+        # return image, np.argmax(data_row.values[5:9])
 
     def build_bce_weights(self):
         pos_weights = np.ones(4)

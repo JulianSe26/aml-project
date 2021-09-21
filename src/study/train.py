@@ -36,17 +36,16 @@ model_name = "study_resnext101_32x8d"
 
 
 def calculate_metrics(predictions, targets, threshold=.5):
-        return {"accuracy": 0, "f1": 0, "recall": 0, "precision": 0}
-        # print(np.unique(predictions, axis=0, return_counts=True))
+        print(np.unique(predictions, axis=0, return_counts=True))
         # # todo change for multi class
-        # predictions = np.array(predictions > threshold, dtype=float)
-        # print(np.unique(predictions, axis=0, return_counts=True))
-        # print(np.unique(targets, axis=0, return_counts=True))
-        # precision = precision_score(targets, predictions, average="macro")
-        # recall = recall_score(targets, predictions, average="macro")
-        # f1 = f1_score(targets, predictions, average="macro")
-        # accuarcy = accuracy_score(targets, predictions)
-        # return {"accuracy": accuarcy, "f1": f1, "recall": recall, "precision": precision}
+        predictions = np.array(predictions > threshold, dtype=float)
+        print(np.unique(predictions, axis=0, return_counts=True))
+        print(np.unique(targets, axis=0, return_counts=True))
+        precision = precision_score(targets, predictions, average="macro")
+        recall = recall_score(targets, predictions, average="macro")
+        f1 = f1_score(targets, predictions, average="macro")
+        accuarcy = accuracy_score(targets, predictions)
+        return {"accuracy": accuarcy, "f1": f1, "recall": recall, "precision": precision}
 
 
 def prepare_data(arguments):
@@ -74,6 +73,8 @@ def resolve_device():
 # overfitting?
 # - super sample class in-balance with data loading
 # - test pytorch pre built classification layer
+
+# --> calculate map
 
 if __name__ == '__main__':
 
@@ -105,7 +106,7 @@ if __name__ == '__main__':
 
     # optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9, nesterov=True)
-    criterion = nn.CrossEntropyLoss().to(device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=train_dataset.build_bce_weights()).to(device)
     scaler = torch.cuda.amp.GradScaler()
     sigmoid = torch.nn.Sigmoid().to(device)
 

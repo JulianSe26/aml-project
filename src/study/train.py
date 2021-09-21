@@ -69,9 +69,11 @@ def resolve_device():
     print(f"Using device: {device_name}")
     return found_device
 
-# todo structure + profiling + freeze layers? + weights used?
+# todo structure
 # test change to multi-class + others ?
-# overfitting? regularization
+# overfitting?
+# - super sample class in-balance with data loading
+# - test pytorch pre built classification layer
 
 if __name__ == '__main__':
 

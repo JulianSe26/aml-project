@@ -18,7 +18,7 @@ from model import CovidModel
 
 
 '''================Train Configuration========================='''
-number_epochs = 35
+number_epochs = 55
 save_frequency = 2          # in epochs
 test_frequency = 1          # in epochs
 scheduler_frequency = 2     # in epochs
@@ -50,7 +50,7 @@ def calculate_metrics(predictions, targets, threshold=.5):
 
 def prepare_data(arguments):
     data_path = Path(arguments.data_dir).expanduser()
-    train_df, test_df = split_dataset(data_path)
+    train_df, test_df = split_dataset(data_path, random_state=55)
     train = StudyDataset(train_df)
     test = StudyDataset(test_df, training=False)
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=16)
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
     # optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9, nesterov=True)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=train_dataset.build_bce_weights()).to(device)
+    criterion = nn.BCEWithLogitsLoss().to(device)
     scaler = torch.cuda.amp.GradScaler()
     sigmoid = torch.nn.Sigmoid().to(device)
 

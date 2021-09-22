@@ -21,6 +21,8 @@ The challenge provides train data with labels and ground-truth boxes and test da
 
 Precisely the Kaggle challenge defines following two tasks:
 
+// TODO: update for multi-class classification doi:10.1097/RTI.0000000000000541
+
 \begin{description}
     \item[Image-level] Perform \textit{object detection} to detect opacities within the lung for each chest radiograph image provided. As result a bounding box should be predicted if an opacity was found. There is only a single object class (\texttt{opacity}) to be predicted. A single image could contain multiple opacities.
     \item[Study-level] Predict a potential COVID-19 disease for a given study by classifying in four different classes (see below). As the prediction should be done on study level, might multiple images have to be analysed for a single classification. The challenge denotes that may multiple labels per instance are possible within the test set. Thus this task qualifies as \textit{multi-label classification}, however within the train set not a single sample is annotated with multiple classes (see section \ref{data:siim}).
@@ -36,6 +38,9 @@ Possible classes for the study level task are:
     \item Indeterminate Appearance,
     \item Atypical Appearance.
 \end{itemize}
+
+
+// TODO: update label description using: doi:10.1097/RTI.0000000000000541
 
 Where the class \textit{Negative for Pneumonia} means that no COVID or non-COVID pneumonia was detected. Contrary \textit{Indeterminate Appearance} means that there is a pneumonia but the cause is not necessarily COVID-19. The two remaining classes could be interpreted as COVID-19 positive.
 

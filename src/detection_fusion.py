@@ -85,7 +85,7 @@ class EnsembleModel():
 
         return self.refine_det(ret_boxes), ret_scores, ret_labels
 
-    def detection_fusion(self,img:torch.Tensor, yolo_img, extended_output=False):
+    def detection_fusion(self,img:torch.Tensor, yolo_img: torch.Tensor, extended_output=False):
         
         #gather image information
         orig_width, orig_height = img.shape[2], img.shape[3]

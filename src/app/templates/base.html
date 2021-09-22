@@ -15,6 +15,15 @@
             {{ bootstrap.load_css() }}
         {% endblock %}
 
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class=flashes>
+                {% for message in messages %}
+                <div class="row d-flex justify-content-center mt-3" style="color:red">{{ message }}</div>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
         
         {% endblock %}
     </head>

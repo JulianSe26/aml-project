@@ -18,8 +18,8 @@
       <div class="col-md-2"></div>
       <div class="col-md-2 mt-3 mr-3">
         <div class="row text-center mt-3 mr-3">
-            <div class="col-md-8">Box</div>
-            <div class="col-md-4">Scores</div>
+            <div class="col-md-8"><h2>Box</h2></div>
+            <div class="col-md-4"><h2>Scores</h2></div>
         </div>
         <div class="row text-center">
         {% if boxes != None %}
@@ -35,12 +35,14 @@
         <div class="text-center">
             <form id="imgForm" method="POST" enctype="multipart/form-data">
                 <div class="row d-flex justify-content-center">
-                    <div class="input-group">
-                        <div class="custom-file">
-                            <input type='file' id="file" name="file"/>
-                            <label class="custom-file-label" for="file">Choose file by clicking here</label>
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <div class="custom-file">
+                                <input type='file' id="file" name="file"/>
+                                <label class="custom-file-label" for="file">Choose file by clicking here</label>
+                            </div>
                         </div>
-                      </div>
+                    </div>
                 </div>
                 <div class="row d-flex justify-content-center mt-3">
                     <div class="form-group">
@@ -51,7 +53,7 @@
                             <label class="btn btn-primary"> 
                                 <input type="radio" id="yolo" name="yolo" /> Yolo
                             </label>
-                            <label class="btn btn-primary checked active"> 
+                            <label class="btn btn-primary checked focus active"> 
                                 <input type="radio" id="ensemble" name="ensemble" /> Ensemble
                             </label>
                         </div>

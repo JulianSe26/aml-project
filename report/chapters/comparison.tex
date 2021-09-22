@@ -40,18 +40,19 @@ The final validation results during training for both detection models on the CO
 However, we choose the best observed models for our final implementation of the COVID-19 detection. In more detail we used the \ac{YOLO} model checkpoint at epoch 26 and the Faster \ac{R-CNN} model checkpoint at epoch 23.
 
 Finally, table \ref{table:final_results} shows extended evaluation results of the models including also the ensemble performance on a held-out consisting of 859 examples. 
-\begin{table}[h!]
+\begin{table}[h]
 	\begin{tabular}{l|l|l|l}
 		&    Faster R-CNN          &         YOLO             &  Ensemble \\ \hline
 		mAP@.50			& \multicolumn{1}{l|}{0.409} & \multicolumn{1}{l|}{0.345} & \textbf{0.451}  \\
 		F1-score		& \multicolumn{1}{l|}{0.547} & \multicolumn{1}{l|}{0.477} & \textbf{0.560} \\
 		mean Recall		& \multicolumn{1}{l|}{0.503} & \multicolumn{1}{l|}{0.450} & \textbf{0.530} \\
-		mean Precision	& \multicolumn{1}{l|}{0.603} & \multicolumn{1}{l|}{0.506} & \textbf{0.594} \\
+		mean Precision	& \multicolumn{1}{l|}{\textbf{0.603}} & \multicolumn{1}{l|}{0.506} & 0.594 \\
 	\end{tabular}
 	\centering
 	\caption{Final evaluation results on the held-out test set.}
 	\label{table:final_results}
 \end{table}
+
 In addition to the \ac{mAP}@$.50$ we took F1, mean Recall and mean Precision into consideration. The results show clearly, that surprisingly, the \ac{YOLO} model performs worse than the Faster \ac{R-CNN}, which the validation results during training would not have let expected. However, this reflects pretty much the model performances obtained in other research, where the Faster \ac{R-CNN} performs in average always better than \ac{YOLO}, where the advantages in \ac{YOLO} lays in the inference speed through its one-shot capability. Fortunately, we could see that combining both models through our ensemble approach leads to the best performance in all selected metrics.
 
 \begin{figure*}[h!]

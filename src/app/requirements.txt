@@ -9,4 +9,5 @@ timm
 ensemble-boxes==1.0.7
 seaborn
 requests
-opencv-python
+tqdm
+pyyaml

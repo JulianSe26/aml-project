@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM jjanzic/docker-python3-opencv
 
 ENV BACKBONE_PATH="/app/models/resnext101_32x8d_epoch_35.pt"
 ENV RCNN_STATE_DICT="/app/models/fasterrcnn_epoch_23.pt"

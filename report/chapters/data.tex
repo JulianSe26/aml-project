@@ -36,11 +36,20 @@ Since this challenge has a lot in common with the challenge we want to contribut
 		\includegraphics[width=\linewidth]{img/rsna_sample.png}
 		\caption{Extracted from \autocite{rsnaSurvey}}
 		\label{fig:rsna_sample}
-	\end{minipage}
+	\end{minipage} 
 \end{figure*}
 
 \section{SIIM COVID-19 Data}\label{data:siim}
 \sectionauthor{Written by Torben Krieger}
+
+The last dataset we use is provided by the SIIM Kaggle Challenge itself \autocite{SIIMKaggle}. It contains \ac{CXR} images of COVID-19 positive and negative patients. The dataset itself is a reassembly of at least two previously published datasets. Namely the \textit{BIMCV-COVID19 Data} initially published by \citeauthor{vaya2020bimcv} in June 2020 \autocite{vaya2020bimcv} and the \textit{RSNA MIDRC-RICORD Data} published by \citeauthor{tsai2021rsna} in January 2021 \autocite{tsai2021rsna}. Primary only the X-ray images were taken from both datasets the annotation of the data was recreated for the assembled dataset. Both datasets were refreshed and supplemented multiple times. The description of the Kaggle Challenge not specifies which versions were used for the assembly.
+
+The initial version of the \textit{BIMCV-COVID19} dataset contains 1,380 CR images and 885 DX images \autocite{vaya2020bimcv}. Generally we do not distinguish between the two classical X-ray modalities CR and DX, thus the dataset contains 2265 CXR images. The images were taken from 1,311 unique COVID-19 positive patients in hospitals within the region of Valencia, Spain. All images are provided in the DICOM format including metadata, although anonymized for privacy reasons. Nevertheless patients age and sex was retained. The original dataset includes additional data, e.g. the results of one or multiple COVID-19 tests (at least one positive) and a corresponding Radiological report.
+
+The \textit{MIDRC-RICORD} dataset contains 1000 CXR images of 361 unique COVID-19 positive patients. Where positive means that at least one \ac{RT-PCR} test was positive for the corresponding patient. The data was collected from four different hospitals in Istanbul, San Francisco, Toronto and São Paulo and is provided in DICOM format including metadata, again anonymized. Also here patient sex and age was retained, the authors specify that 148 of the total amount of patients is female (41\%).
+
+
+
 
 // mini dicom intro ? study-series-image relation, transfer syntaxes --> uncompressed
 // multi-label occurrence in train set

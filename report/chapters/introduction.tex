@@ -21,11 +21,9 @@ The challenge provides train data with labels and ground-truth boxes and test da
 
 Precisely the Kaggle challenge defines following two tasks:
 
-// TODO: update for multi-class classification doi:10.1097/RTI.0000000000000541
-
 \begin{description}
     \item[Image-level] Perform \textit{object detection} to detect opacities within the lung for each chest radiograph image provided. As result a bounding box should be predicted if an opacity was found. There is only a single object class (\texttt{opacity}) to be predicted. A single image could contain multiple opacities.
-    \item[Study-level] Predict a potential COVID-19 disease for a given study by classifying in four different classes (see below). As the prediction should be done on study level, might multiple images have to be analysed for a single classification. The challenge denotes that may multiple labels per instance are possible within the test set. Thus this task qualifies as \textit{multi-label classification}, however within the train set not a single sample is annotated with multiple classes (see section \ref{data:siim}).
+    \item[Study-level] Predict a potential COVID-19 disease for a given study by classifying in four different classes (see below). As the prediction should be done on study level, might multiple images have to be analysed for a single classification. Although the initial challenge description denotes that multiple labels per image are possible other sources indicate that the label categories are mutual exclusive \autocite{litmanovich2020review, SIIMKaggleAnnotation}. Thus this task qualifies as \textit{multi-class classification}.
 \end{description}
 
 It is not required that the study-level task uses the result of the image-level task as input or the other way around. The challenge only requires that the results are predicted for both.
@@ -39,10 +37,7 @@ Possible classes for the study level task are:
     \item Atypical Appearance.
 \end{itemize}
 
-
-// TODO: update label description using: doi:10.1097/RTI.0000000000000541
-
-Where the class \textit{Negative for Pneumonia} means that no COVID or non-COVID pneumonia was detected. Contrary \textit{Indeterminate Appearance} means that there is a pneumonia but the cause is not necessarily COVID-19. The two remaining classes could be interpreted as COVID-19 positive.
+Where the class \textit{Negative for Pneumonia} means that no COVID or non-COVID pneumonia was detected. Contrary \textit{Indeterminate Appearance} means that there are findings for a pneumonia but the findings are not characteristic for COVID-19. The label \textit{Atypical Appearance} means that there were findings which are atypical or uncommon for COVID-19. Finally \textit{Typical Appearence} means that found findings are typical for COVID-19, however other causes are still possible.
 
 The Challenge is a so called \textit{Code Competition}. That means competitors are asked to submit their solution as Python Notebook, not as single submission file. The notebook is then executed on cloud services provided by Kaggle. The single notebook has to prepare the data, execute the training of the models and finally create a submission file. Per submission there are limits for the total allowed runtime of the notebook. For the referenced challenge the CPU and GPU time is limited to 9 hours each \autocite{SIIMKaggle}. Additionally no internet access is possible within the execution environment. However publicly available packages and pre-trained models are allowed and accessible. The notebook has to create a single submission file which contains both the predicted labels for the image- and study-level task. Each record is identified using either the DICOM study or image id. The file has to be formatted as CSV. Results of the classification task are represented as bounding box with the size of a single pixel and a confidence of 1. For the official rating of the predicted bounding boxes a \ac{mAP} with an \ac{IoU} of 0.5 is used.
 

@@ -19,6 +19,9 @@ class CovidModel(nn.Module):
         # weights will be loaded initially from resnet.backbone
         self.backbone = timm.create_model("resnext101_32x8d", pretrained=False, num_classes=0)
 
+        for params in self.backbone.parameters():
+            params.requires_grad = False
+
         self.classifier = nn.Sequential(
             nn.Linear(2048, 1024, bias=True),
             nn.ReLU(),

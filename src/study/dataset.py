@@ -44,16 +44,8 @@ class StudyDataset(Dataset):
     def __getitem__(self, idx):
         data_row = self.merged_data.iloc[idx]
         image = self.transform(Image.open(data_row["file_path"]).convert("RGB"))
-        return image, torch.from_numpy(np.squeeze((data_row.values[5:9])).astype(np.float32))
-        # return image, np.argmax(data_row.values[5:9])
-
-    def build_bce_weights(self):
-        pos_weights = np.ones(4)
-        labels_only = self.merged_data.iloc[:, 5:9]
-        for index in range(4):
-            values = labels_only.iloc[:, index].value_counts().sort_index()
-            pos_weights[index] = values[0] / values[1]
-        return torch.from_numpy(pos_weights)
+        # return image, torch.from_numpy(np.squeeze((data_row.values[5:9])).astype(np.float32))
+        return image, np.argmax(data_row.values[5:9])
 
 
 def split_dataset(base_path: Path, train_size=0.66, random_state=42):

@@ -23,7 +23,7 @@ save_frequency = 2          # in epochs
 test_frequency = 1          # in epochs
 scheduler_frequency = 2     # in epochs
 print_loss_frequency = 500  # in iterations
-batch_size = 15
+batch_size = 10
 '''============================================================'''
 
 '''=================Misc Configuration========================='''
@@ -35,16 +35,15 @@ model_name = "study_resnext101_32x8d"
 '''============================================================'''
 
 
-def calculate_metrics(predictions, targets, threshold=.5):
-        print(np.unique(predictions, axis=0, return_counts=True))
-        # # todo change for multi class
-        predictions = np.array(predictions > threshold, dtype=float)
-        print(np.unique(predictions, axis=0, return_counts=True))
+def calculate_metrics(probabilities, targets):
+        print(probabilities)
+        prediction = np.argmax(probabilities, axis=1)
+        print(np.unique(prediction, axis=0, return_counts=True))
         print(np.unique(targets, axis=0, return_counts=True))
-        precision = precision_score(targets, predictions, average="macro")
-        recall = recall_score(targets, predictions, average="macro")
-        f1 = f1_score(targets, predictions, average="macro")
-        accuarcy = accuracy_score(targets, predictions)
+        precision = precision_score(targets, prediction, average="macro")
+        recall = recall_score(targets, prediction, average="macro")
+        f1 = f1_score(targets, prediction, average="macro")
+        accuarcy = accuracy_score(targets, prediction)
         return {"accuracy": accuarcy, "f1": f1, "recall": recall, "precision": precision}
 
 
@@ -69,12 +68,11 @@ def resolve_device():
     return found_device
 
 # todo structure
-# test change to multi-class + others ?
 # overfitting?
 # - super sample class in-balance with data loading
-# - test pytorch pre built classification layer
 
 # --> calculate map
+
 
 if __name__ == '__main__':
 
@@ -106,9 +104,10 @@ if __name__ == '__main__':
 
     # optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9, nesterov=True)
-    criterion = nn.BCEWithLogitsLoss().to(device)
+    # according to doi:10.1097/RTI.0000000000000541 classes are mutual exclusive
+    criterion = nn.CrossEntropyLoss().to(device)
     scaler = torch.cuda.amp.GradScaler()
-    sigmoid = torch.nn.Sigmoid().to(device)
+    softmax = torch.nn.Softmax(dim=1).to(device)
 
     # training scheduler
     lf = lambda x: (((1 + math.cos(x * math.pi / number_epochs)) / 2) ** 1.0) * 0.95 + 0.05
@@ -190,7 +189,7 @@ if __name__ == '__main__':
                         imgs = imgs.to(device)
                         labels = Variable(labels.to(device), requires_grad=False)
                         batch_logits = model(imgs)
-                        batch_predictions = sigmoid(batch_logits)
+                        batch_predictions = softmax(batch_logits)
                         val_loss = criterion(batch_logits, labels)
                         validation_loss.append(val_loss.item())
                         predictions.extend(batch_predictions.cpu().numpy())

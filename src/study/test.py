@@ -6,8 +6,8 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from src.study.model import CovidModel
-from src.study.utils import resolve_device, calculate_metrics, prepare_data
+from model import CovidModel
+from utils import resolve_device, calculate_metrics, prepare_data
 
 TEST_CONFIG = {
     "data_dir": "/home/tkrieger/var/aml-xrays",

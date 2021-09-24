@@ -5,7 +5,7 @@ import sklearn
 import torch
 from torch.utils.data import DataLoader
 
-from src.study.dataset import split_dataset, StudyDataset
+from dataset import split_dataset, StudyDataset
 
 
 def resolve_device():
@@ -19,8 +19,9 @@ def resolve_device():
     return found_device
 
 
-def to_one_hot(labels):
-    one_hot = np.zeros((labels.size, labels.max() + 1))
+def to_one_hot(labels, classes=None):
+    classes = (labels.max() + 1) if classes is None else classes
+    one_hot = np.zeros((labels.size, classes))
     one_hot[np.arange(labels.size), labels] = 1
     return one_hot
 
@@ -37,7 +38,7 @@ def calculate_metrics(all_targets, all_probabilities):
         'accuracy': sklearn.metrics.accuracy_score(all_targets, all_predictions),
     }
     hot_targets = to_one_hot(all_targets)
-    hot_predictions = to_one_hot(all_predictions)
+    hot_predictions = to_one_hot(all_predictions, hot_targets.shape[1])
     aps = np.zeros(hot_targets.shape[1])
     for c in range(hot_targets.shape[1]):
         metrics[f'ap_{c}'] = sklearn.metrics.average_precision_score(hot_targets[:, c], hot_predictions[:, c])

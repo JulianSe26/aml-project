@@ -2,20 +2,16 @@ from pathlib import Path
 import torch
 from torch import optim
 import torch.nn as nn
-from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from dataset import StudyDataset
-from dataset import split_dataset
 import pickle
 from tqdm import tqdm
 from torch.autograd import Variable
 import numpy as np
-from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 import math
 import argparse
 
 from model import CovidModel
-
+from src.study.utils import calculate_metrics, resolve_device, prepare_data
 
 '''================Train Configuration========================='''
 number_epochs = 55
@@ -23,7 +19,7 @@ save_frequency = 2          # in epochs
 test_frequency = 1          # in epochs
 scheduler_frequency = 2     # in epochs
 print_loss_frequency = 500  # in iterations
-batch_size = 10
+batch_size = 35
 '''============================================================'''
 
 '''=================Misc Configuration========================='''
@@ -33,39 +29,6 @@ model_folder = "/home/tkrieger/var/aml-models/study"
 loss_folder = "./losses"
 model_name = "study_resnext101_32x8d"
 '''============================================================'''
-
-
-def calculate_metrics(probabilities, targets):
-        print(probabilities)
-        prediction = np.argmax(probabilities, axis=1)
-        print(np.unique(prediction, axis=0, return_counts=True))
-        print(np.unique(targets, axis=0, return_counts=True))
-        precision = precision_score(targets, prediction, average="macro")
-        recall = recall_score(targets, prediction, average="macro")
-        f1 = f1_score(targets, prediction, average="macro")
-        accuarcy = accuracy_score(targets, prediction)
-        return {"accuracy": accuarcy, "f1": f1, "recall": recall, "precision": precision}
-
-
-def prepare_data(arguments):
-    data_path = Path(arguments.data_dir).expanduser()
-    train_df, test_df = split_dataset(data_path, random_state=55)
-    train = StudyDataset(train_df)
-    test = StudyDataset(test_df, training=False)
-    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=16)
-    test_loader = DataLoader(test, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=16)
-    return train_loader, test_loader, train, test
-
-
-def resolve_device():
-    if torch.cuda.is_available:
-        found_device = torch.device("cuda")
-        device_name = torch.cuda.get_device_name(0)
-    else:
-        found_device = torch.device("cpu")
-        device_name = "cpu"
-    print(f"Using device: {device_name}")
-    return found_device
 
 # todo structure
 # overfitting?
@@ -87,12 +50,10 @@ if __name__ == '__main__':
     parser.add_argument("--model_dir", default=model_folder, type=str)
     parser.add_argument("--loss_dir", default=loss_folder, type=str)
     parser.add_argument("--board_subdir", default=None, type=str)
-
-
     args = parser.parse_args()
     print(args)
 
-    train_loader, test_loader, train_dataset, _ = prepare_data(args)
+    train_loader, test_loader, train_dataset, _ = prepare_data(args.data_dir, batch_size)
     # Create required directories
     Path(args.model_dir).mkdir(exist_ok=True)
     Path(args.loss_dir).mkdir(exist_ok=True)
@@ -103,7 +64,7 @@ if __name__ == '__main__':
     print(model)
 
     # optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9, nesterov=True)
+    optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, nesterov=True)
     # according to doi:10.1097/RTI.0000000000000541 classes are mutual exclusive
     criterion = nn.CrossEntropyLoss().to(device)
     scaler = torch.cuda.amp.GradScaler()
@@ -197,7 +158,7 @@ if __name__ == '__main__':
                         writer.add_scalar(tag="Validation/Loss/Batch", scalar_value=val_loss.item(),
                                           global_step=test_i * (epoch + 1))
 
-                    test_results = calculate_metrics(np.array(predictions), np.array(targets))
+                    test_results, _ = calculate_metrics(np.array(predictions), np.array(targets))
                     test_results_general.append(test_results)
                     val_loss_per_epoch.append(np.mean(validation_loss))
                     writer.add_scalar(tag="Validation/Loss/Epoch", scalar_value=val_loss_per_epoch[-1], global_step=epoch)
@@ -213,7 +174,7 @@ if __name__ == '__main__':
                         "scheduler": scheduler.state_dict()}, f"{args.model_dir}/{model_name}_epoch_{epoch}_ckpt.pt")
             np.save(f"{args.loss_dir}/{model_name}_train_loss_{epoch}.np", np.array(loss_per_epoch))
             np.save(f"{args.loss_dir}/{model_name}_val_loss_{epoch}.np", np.array(val_loss_per_epoch))
-            with open(f"{args.loss_dir}/{model_name}_general_test_results_{epoch}.pickle", "wb") as p:
+            with open(f"{args.loss_dir}/{model_name}_general_val_results_{epoch}.pickle", "wb") as p:
                 pickle.dump(test_results_general, p)
 
     writer.close()

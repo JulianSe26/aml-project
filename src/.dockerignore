@@ -1,0 +1,15 @@
+**/__pycache__/
+**/*.npy
+**/*.pickle
+**/data/
+**/.vscode/
+**/imgs/
+**/report/
+**/*.pt
+**/*.json
+**/*.png
+**/*.jpg
+
+!**/resnext101_32x8d_epoch_35.pt
+!**/fasterrcnn_epoch_23.pt
+!**/yolov5_epoch_26.pt

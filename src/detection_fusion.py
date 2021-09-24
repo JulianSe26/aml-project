@@ -1,102 +1,139 @@
-from numba.cuda.args import In
-import numpy as np
+import sys
+sys.path.append('./yolo')
 import torch
 import torch
 from ensemble_boxes import weighted_boxes_fusion
 from rcnn.model import ChestRCNN
 from yolo.yolo import Model
 import torch
-from torchvision import transforms
 from torchvision.ops import nms
 from PIL import Image
 from yolo.utils.general import non_max_suppression
+from torchvision import transforms
 
 
-YOLO_FINAL_MODEL_PATH = "./yolo/models_final_giou_10/yolov5_epoch_14.pt"
-FASTER_RCNN_FINAL_MODEL_PATH = "./rcnn/models/fasterrcnn_epoch_23.pt"
-RESNET_BACKBONE_PATH = "./resnet/models/resnext101_32x8d_epoch_35.pt"
+class EnsembleModel():
 
-IOU_THRESHOLD_FUSION = .2
-CONFIDENCE_THRESHOLD = 0.3
-IOU_THRESHOLD = 0.2
-INFERENCE_SIZE = 512
+    def __init__(self, fasterRcnn:ChestRCNN, yolo:Model, inference_size = 512, iou_threshold_nms=.1, iou_threshold_fusion=.55, confidence_threshold_nms=.1):
+        self.fasterRcnn = fasterRcnn
+        self.yolo = yolo
+        self.inference_size = inference_size
+        self.iou_threshold_nms = iou_threshold_nms
+        self.iou_threshold_fusion = iou_threshold_fusion
+        self.confidence_threhsold_nms = confidence_threshold_nms
 
-def scale_boxes_to_size(width_factor,height_factor, out_boxes):
-    return [[round(box[0] * width_factor, 4), round(box[1] * height_factor, 4), round(box[2] * width_factor, 4), round(box[3] * height_factor, 4)] for box in out_boxes]
+    def scale_boxes_to_size(self,width_factor,height_factor, out_boxes):
+        return [[round(box[0] * width_factor, 4), round(box[1] * height_factor, 4), round(box[2] * width_factor, 4), round(box[3] * height_factor, 4)] for box in out_boxes]
 
-def normalize_boxes(box_pred):
-    return [[round(box[0] /INFERENCE_SIZE, 4), round(box[1] / INFERENCE_SIZE, 4), round(box[2] /INFERENCE_SIZE, 4), round(box[3] / INFERENCE_SIZE, 4)] for box in box_pred]
+    def normalize_boxes(self,box_pred):
+        return [[round(box[0] /self.inference_size, 4), round(box[1] / self.inference_size, 4), round(box[2] / self.inference_size, 4), round(box[3] / self.inference_size, 4)] for box in box_pred]
 
-def refine_det(boxes):
-    boxes_out = []
-    for box in boxes:
-        x1, y1, x2, y2 = box
-        if x1==x2 or y1==y2:
-            continue
-        box = [min(x1,x2), min(y1,y2), max(x1,x2), max(y1,y2)]
-        boxes_out.append(box)
+    def refine_det(self,boxes):
+        boxes_out = []
+        for box in boxes:
+            x1, y1, x2, y2 = box
+            if x1==x2 or y1==y2:
+                continue
+            box = [min(x1,x2), min(y1,y2), max(x1,x2), max(y1,y2)]
+            boxes_out.append(box)
 
-    return boxes_out
+        return boxes_out
 
-def inference_rcnn(img: Image, fasterRcnn:ChestRCNN):
+    def inference_rcnn(self,img: torch.Tensor):
 
-    img_resized = img.resize((INFERENCE_SIZE, INFERENCE_SIZE), Image.ANTIALIAS)
+        with torch.inference_mode():
+            out = self.fasterRcnn(img)
+            out_indices = nms(boxes = out[0]['boxes'], scores=out[0]['scores'], iou_threshold=self.iou_threshold_nms)
+            out_boxes = torch.index_select(out[0]['boxes'], 0, out_indices).detach().numpy()
+            out_scores = torch.index_select(out[0]['scores'], 0, out_indices).detach().numpy()
+            out_boxes = out_boxes[out_scores >= self.confidence_threhsold_nms]
+            out_scores = out_scores[out_scores >= self.confidence_threhsold_nms]
 
-    tensor_img = transforms.ToTensor()(img_resized).unsqueeze_(0)
-    with torch.inference_mode():
-        out = fasterRcnn(tensor_img)
-        out_indices = nms(boxes = out[0]['boxes'], scores=out[0]['scores'], iou_threshold=IOU_THRESHOLD)
-        out_boxes = torch.index_select(out[0]['boxes'], 0, out_indices).detach().numpy()
-        out_scores = torch.index_select(out[0]['scores'], 0, out_indices).detach().tolist()
+        ret_boxes = []
+        ret_scores = []
+        ret_labels = []
 
-    ret_boxes = []
-    ret_scores = []
-    ret_labels = []
-
-    if len(out_boxes) != 0:
-        # Scale boxes back to [0,1]
-        ret_boxes = normalize_boxes(out_boxes)
-        ret_scores = [round(score, 4) for score in out_scores]
-        ret_labels = [1 for score in ret_scores] # label is always 1
-
-
-    return refine_det(ret_boxes), ret_scores, ret_labels
+        if len(out_boxes) != 0:
+            # Scale boxes back to [0,1]
+            ret_boxes = self.normalize_boxes(out_boxes)
+            ret_scores = [round(score, 4) for score in out_scores]
+            ret_labels = [1 for score in ret_scores] # label is always 1
 
 
-def inference_yolo(img: Image, yolo:Model):
-    # Tbd: img /=255 
-    img_resized = img.resize((INFERENCE_SIZE, INFERENCE_SIZE), Image.ANTIALIAS)
-
-    tensor_img = transforms.ToTensor()(img_resized).unsqueeze_(0)
-
-    with torch.inference_mode():
-        prediction = yolo(tensor_img,augment=True)[0]
-
-    prediction = non_max_suppression(prediction, CONFIDENCE_THRESHOLD, IOU_THRESHOLD, classes=None)[0]
-    out_boxes = prediction[:,:4].detach().numpy()
-    out_scores = prediction[:,4].detach().tolist()
-
-    ret_boxes = []
-    ret_scores = []
-    ret_labels = []
+        return self.refine_det(ret_boxes), ret_scores, ret_labels
 
 
-    if len(out_boxes) != 0:
-        # Scale boxes back to [0,1]
-        ret_boxes = normalize_boxes(out_boxes)
-        ret_scores = [round(score, 4) for score in out_scores]
-        ret_labels = [1 for score in ret_scores] # label is always 1
+    def inference_yolo(self,img: torch.Tensor):
 
-    return refine_det(ret_boxes), ret_scores, ret_labels
+        with torch.inference_mode():
+            prediction = self.yolo(img,augment=True)[0]
 
-def detection_fusion(img, extended_output=False):
+        prediction = non_max_suppression(prediction, self.confidence_threhsold_nms, self.iou_threshold_nms, classes=None)[0]
+        out_boxes = prediction[:,:4].detach().numpy()
+        out_scores = prediction[:,4].detach().tolist()
 
-    img = img.convert('RGB')
+        ret_boxes = []
+        ret_scores = []
+        ret_labels = []
 
-    #gather image information
-    orig_width, orig_height = img.size
 
-    # Load both models
+        if len(out_boxes) != 0:
+            # Scale boxes back to [0,1]
+            ret_boxes = self.normalize_boxes(out_boxes)
+            ret_scores = [round(score, 4) for score in out_scores]
+            ret_labels = [1 for score in ret_scores] # label is always 1
+
+        return self.refine_det(ret_boxes), ret_scores, ret_labels
+
+    def detection_fusion(self,img:torch.Tensor, yolo_img: torch.Tensor, extended_output=False):
+        
+        #gather image information
+        orig_width, orig_height = img.shape[2], img.shape[3]
+
+        self.yolo.eval()
+        self.fasterRcnn.eval()
+
+        # inference 
+        frcnn_boxes, frcnn_scores, frcnn_labels = self.inference_rcnn(img)
+        yolo_boxes, yolo_scores, yolo_labels = self.inference_yolo(yolo_img)
+
+        boxes = [frcnn_boxes, yolo_boxes]
+        scores = [frcnn_scores , yolo_scores]
+        
+        labels = [frcnn_labels, yolo_labels]
+        
+        weights = [1,1]
+     
+        boxes, scores, labels = weighted_boxes_fusion(boxes, scores, labels, weights=weights, iou_thr=self.iou_threshold_fusion)
+        boxes = boxes.clip(0,1)
+
+        boxes_indices = nms(torch.tensor(boxes), torch.tensor(scores), self.iou_threshold_nms)
+        boxes = torch.index_select(torch.tensor(boxes),0, boxes_indices).detach().tolist()
+        scores = torch.index_select(torch.tensor(scores), 0, boxes_indices).detach().tolist()
+        labels = torch.index_select(torch.tensor(labels), 0, boxes_indices).detach().tolist()
+
+        # scale box back to original size
+        boxes = self.scale_boxes_to_size(orig_width, orig_height, boxes)
+
+        opacity_pred = []
+        for box, score in zip(boxes, scores):
+            opacity_pred.append('opacity {} {} {} {} {}'.format(score, box[0], box[1], box[2],box[3]))
+
+        if extended_output:
+            return opacity_pred, boxes, scores, labels, self.scale_boxes_to_size(orig_width, orig_height, yolo_boxes), yolo_scores, yolo_labels, self.scale_boxes_to_size(orig_width, orig_height, frcnn_boxes), frcnn_scores, frcnn_labels
+
+        return opacity_pred, boxes, scores
+
+
+if __name__ == "__main__":
+
+    YOLO_FINAL_MODEL_PATH = "./yolo/models_final_giou_40/yolov5_epoch_25.pt"
+    FASTER_RCNN_FINAL_MODEL_PATH = "./rcnn/models/fasterrcnn_epoch_23.pt"
+    RESNET_BACKBONE_PATH = "./resnet/models/resnext101_32x8d_epoch_35.pt"
+    SAMPLE_DATA = '../data/siim-covid19-detection/data/test/00a81e8f1051/bdc0bb04ae1e/ced40f593496.png'
+
+    img = Image.open(SAMPLE_DATA).convert("RGB")
+    img_resized = img.resize((512, 512), Image.ANTIALIAS)
     yolov5_weights = torch.load(YOLO_FINAL_MODEL_PATH)
     fasterrcnn_r101_weights = torch.load(FASTER_RCNN_FINAL_MODEL_PATH)
 
@@ -105,37 +142,4 @@ def detection_fusion(img, extended_output=False):
 
     fasterRcnn = ChestRCNN(RESNET_BACKBONE_PATH)
     fasterRcnn.load_state_dict(fasterrcnn_r101_weights)
-
-    yolo.eval()
-    fasterRcnn.eval()
-
-    # inference 
-    frcnn_boxes, frcnn_scores, frcnn_labels = inference_rcnn(img, fasterRcnn)
-    yolo_boxes, yolo_scores, yolo_labels = inference_yolo(img, yolo)
-
-    boxes = [frcnn_boxes, yolo_boxes]
-    scores = [frcnn_scores , yolo_scores]
-    
-    labels = [frcnn_labels, yolo_labels]
-    
-    weights = [1,1]
-    boxes, scores, labels = weighted_boxes_fusion(boxes, scores, labels, weights=weights, iou_thr=IOU_THRESHOLD_FUSION)
-    boxes = boxes.clip(0,1)
-
-    # scale box back to original size
-    boxes = scale_boxes_to_size(orig_width, orig_height, boxes)
-
-    opacity_pred = []
-    for box, score in zip(boxes, scores):
-        opacity_pred.append('opacity {} {} {} {} {}'.format(score, box[0], box[1], box[2],box[3]))
-
-    if extended_output:
-        return opacity_pred, boxes, scores, labels, scale_boxes_to_size(yolo_boxes), yolo_scores, scale_boxes_to_size(frcnn_boxes), frcnn_scores
-
-    return opacity_pred, boxes, scores
-
-
-if __name__ == "__main__":
-    data_path = '../data/siim-covid19-detection/data/test/00a81e8f1051/bdc0bb04ae1e/ced40f593496.png'
-    img = Image.open(data_path)
-    detection_fusion(img)
+    print(EnsembleModel(fasterRcnn=fasterRcnn, yolo=yolo).detection_fusion(transforms.ToTensor()(img_resized).unsqueeze_(0)))

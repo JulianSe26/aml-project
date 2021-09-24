@@ -1,5 +1,5 @@
 $(document).ready(() => {
-
+    $(".btn").slice(2,3).button("toggle");
 })
 
 window.addEventListener('load', function() {

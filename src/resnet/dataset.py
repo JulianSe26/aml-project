@@ -12,19 +12,19 @@ from PIL import Image
 nih_classes = [
     'Atelectasis',
     'Cardiomegaly',
-    'Consolidation',
-    'Edema',
     'Effusion',
-    'Emphysema',
-    'Fibrosis',
-    'Hernia',
     'Infiltration',
     'Mass',
-    'No Finding',
     'Nodule',
-    'Pleural_Thickening',
     'Pneumonia',
     'Pneumothorax',
+    'Consolidation'
+    'Edema',
+    'Emphysema',
+    'Fibrosis',
+    'Pleural_Thickening',
+    'Hernia',
+    'No Finding',
 ]
 
 class NIHDataset(Dataset):

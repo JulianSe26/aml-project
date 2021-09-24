@@ -4,7 +4,10 @@ import logging
 import sys
 from copy import deepcopy
 
-sys.path.append('./')  # to run '$ python *.py' files in subdirectories
+import os 
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
+sys.path.append(dir_path)  # to run '$ python *.py' files in subdirectories
 logger = logging.getLogger(__name__)
 
 from models.common import *

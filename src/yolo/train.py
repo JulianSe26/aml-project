@@ -19,18 +19,18 @@ from utils.torch_utils import intersect_dicts
 
 
 PRETRAINING = False
-GIOU = True
-BACKBONE = False
+GIOU = False
+BACKBONE = True
 '''=========================PRETRAINING====================================='''
 RSNA_TRAIN_PATH = "../../data/RSNA/rsna_pneumonia_yolov5_train.txt"
 RSNA_VALIDATION_PATH = "../../data/RSNA/rsna_pneumonia_yolov5_valid.txt"
-IMAGENET_PRETRAINED_YOLO_PATH = "./models/yolov5x6.pt"
+COCO_PRETRAINED_YOLO_PATH = "./models/yolov5x6.pt"
 '''========================================================================='''
 
 '''=========================TRAIN FOR COVID================================='''
 SIIM_TRAIN_PATH = "../../data/siim-covid19-detection/folds/yolov5_train_fold0.txt"
 SIIM_VALIDATION_PATH = "../../data/siim-covid19-detection/folds/yolov5_valid_fold0.txt" 
-BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_giou_pretrained_40/yolov5_epoch_39.pt"
+BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_pretrained/yolov5_epoch_30.pt"
 '''=========================PRETRAINING====================================='''
 
 '''
@@ -38,10 +38,10 @@ BEST_PRETRAINED_MODEL_CHEKPOINT = "./models_giou_pretrained_40/yolov5_epoch_39.p
 '''
 VALDIATION_FREQUENCY = 1
 SAVE_FREQUENCY = 1 # in epochs
-SCHEDULER_REDUCE_FREQUENCY = 2 # in epochs
+SCHEDULER_REDUCE_FREQUENCY = 1 # in epochs
 LOSS_REPORT_FREQUENCY = 200
 NUMBER_DATALOADER_WORKERS = 10
-EPOCHS = 40
+EPOCHS = 35
 BATCH_SIZE = 3
 IMG_SIZE = 512
 NUMBER_OF_CLASSES = 1
@@ -54,7 +54,7 @@ HYPER_PARAMETERS= {
     "warmup_epochs": 3.0,  # warmup epochs (fractions ok)
     "warmup_momentum": 0.8,  # warmup initial momentum
     "warmup_bias_lr": 0.1,  # warmup initial bias lr
-    "box": 0.05,  # box loss gain
+    "box": 0.1,  # box loss gain
     "cls": 0.5,  # cls loss gain
     "cls_pw": 1.0,  # cls BCELoss positive_weight
     "obj": 1.0,  # obj loss gain (scale with pixels)
@@ -65,16 +65,16 @@ HYPER_PARAMETERS= {
     "hsv_h": 0.015,  # image HSV-Hue augmentation (fraction)
     "hsv_s": 0.7,  # image HSV-Saturation augmentation (fraction)
     "hsv_v": 0.4,  # image HSV-Value augmentation (fraction)
-    "degrees": 0.0,  # image rotation (+/- deg)
+    "degrees": 0.1,  # image rotation (+/- deg)
     "translate": 0.1,  # image translation (+/- fraction)
     "scale": 0.5,  # image scale (+/- gain)
-    "shear": 0.0,  # image shear (+/- deg)
+    "shear": 0.1,  # image shear (+/- deg)
     "perspective": 0.0,  # image perspective (+/- fraction), range 0-0.001
-    "flipud": 0.0,  # image flip up-down (probability)
+    "flipud": 0.1,  # image flip up-down (probability)
     "fliplr": 0.5,  # image flip left-right (probability)
     "mosaic": 1.0,  # image mosaic (probability)
     "mixup": 0.5,  # image mixup (probability)
-    "conf_threshold": 0.01 ,# confidence threshold for nms in validation
+    "conf_threshold": 0.1 ,# confidence threshold for nms in validation
     "iou_threshold": 0.6 # intersection over union threhsold for nms in validations
 }
 
@@ -105,7 +105,8 @@ else:
 
 if __name__ == '__main__':
 
-    
+    print(f' Starting training with the following configuration: \n PRETRAINING={PRETRAINING}\n GIOU={GIOU}\n BACKBONE={BACKBONE}')
+
     if PRETRAINING:
         data_folder_train = RSNA_TRAIN_PATH
         data_folder_validation = RSNA_VALIDATION_PATH
@@ -131,7 +132,7 @@ if __name__ == '__main__':
     # Model init - using L model
     model = Model(cfg="yolo5l.yaml",ch=3,nc=NUMBER_OF_CLASSES).to(device)
     if PRETRAINING and BACKBONE:
-        ckpt = torch.load(IMAGENET_PRETRAINED_YOLO_PATH, map_location=device) 
+        ckpt = torch.load(COCO_PRETRAINED_YOLO_PATH, map_location=device) 
         state_dict = ckpt['model'].float().state_dict()  # to FP32
         state_dict = intersect_dicts(state_dict, model.state_dict())  # intersect
         model.load_state_dict(state_dict, strict=False)  # load
@@ -147,6 +148,7 @@ if __name__ == '__main__':
         if any(x in k for x in freeze):
             print('freezing %s' % k)
             v.requires_grad = False
+    
 
     pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
     for k, v in model.named_modules():
@@ -169,8 +171,7 @@ if __name__ == '__main__':
 
 
     #scheduler
-    #lf = lambda x: (((1 + math.cos(x * math.pi / EPOCHS)) / 2) ** 1.0) * 0.95 + 0.05
-    lf = one_cycle(1, .2, EPOCHS)  # cosine 1->hyp['lrf']
+    lf = lambda x: (((1 + math.cos(x * math.pi / EPOCHS)) / 2) ** 1.0) * 0.95 + 0.05
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
 
 
@@ -199,17 +200,16 @@ if __name__ == '__main__':
     HYPER_PARAMETERS['cls'] *= NUMBER_OF_CLASSES / 80. * 3. / nl 
     HYPER_PARAMETERS['obj'] *= (imgsz / IMG_SIZE) ** 2 * 3. / nl 
     HYPER_PARAMETERS['label_smoothing'] = 0.0
+    print(f"using loss factors: {HYPER_PARAMETERS['box']}, {HYPER_PARAMETERS['cls']}, {HYPER_PARAMETERS['obj']}")
     model.nc = NUMBER_OF_CLASSES 
     model.hyp = HYPER_PARAMETERS 
-    model.gr = 1.0  # iou loss ratio (obj_loss = 1.0 or iou)
+    model.gr = 1.0 
     model.class_weights = labels_to_class_weights(train_dataset.labels, NUMBER_OF_CLASSES).to(device) * NUMBER_OF_CLASSES 
     model.names = ['opacity'] 
 
 
     # Start training
     number_warmups = max(round(HYPER_PARAMETERS["warmup_epochs"] * nb), 1000)  # number of warmup iterations, max(3 epochs, 1k iterations)
-    maps = np.zeros(1)  
-    results = (0, 0, 0, 0, 0, 0, 0)  # P, R, mAP@.5, mAP@.5-.95, val_loss(box, obj, cls)
     scheduler.last_epoch = - 1  
     scaler = amp.GradScaler(enabled=True)
     compute_loss = ComputeLoss(model) 
@@ -220,10 +220,12 @@ if __name__ == '__main__':
                 f'Doing Gradient accumulations: {accumulate}')
 
     losses_per_epoch = []
-    single_losses_per_epoch = []
     single_val_losses_per_epoch = []
     val_losses_per_epoch = []
     general_test_results = []
+
+    mloss = torch.zeros(4, device=device)  # mean losses
+    mloss_val = torch.zeros(4, device=device)
 
     for epoch in range(EPOCHS):
         model.train()
@@ -231,10 +233,10 @@ if __name__ == '__main__':
         single_losses = []
         for i, (imgs, targets, paths, _) in enumerate(tqdm.tqdm(train_loader, desc=colorstr('train: '))):
 
-            ni = i + nb * epoch  # number integrated batches (since train start)
+            ni = i + nb * epoch 
             imgs = imgs.to(device, non_blocking=True).float() / 255.0 # scale images
 
-             # Warmup
+             # Warmup iterations
             if ni <= number_warmups:
                 xi = [0, number_warmups]  # x interp
                 accumulate = max(1, np.interp(ni, xi, [1, nbs / BATCH_SIZE]).round())
@@ -244,7 +246,7 @@ if __name__ == '__main__':
                     if 'momentum' in x:
                         x['momentum'] = np.interp(ni, xi, [HYPER_PARAMETERS["warmup_momentum"], HYPER_PARAMETERS["momentum"]])
 
-            # Multi-scale
+            # YOLO Multi-scale
             if MULTI_SCALE:
                 sz = random.randrange(imgsz * 0.5, imgsz * 1.5 + gs) // gs * gs  # size
                 sf = sz / max(imgs.shape[2:])  # scale factor
@@ -260,12 +262,15 @@ if __name__ == '__main__':
             # Backprop
             scaler.scale(loss).backward()
 
-            losses.append(loss.item())
-            single_losses.append((loss_items[:3].cpu()/ len(train_loader)).numpy()) # box, obj, cls
+          
+
+            mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
+            single_losses.append((loss_items[:3].cpu()/ len(train_loader)).numpy()) # box, obj, cls losses
 
             #Report loss
             if i % LOSS_REPORT_FREQUENCY == 0:
-                print(f' current loss {np.mean(losses)}')
+                print(f'\nmean loss: {mloss}')
+              
 
           
             # Gradient accumulations
@@ -276,21 +281,19 @@ if __name__ == '__main__':
 
         if epoch % SCHEDULER_REDUCE_FREQUENCY  == 0:
              scheduler.step()
-        losses_per_epoch.append(np.mean(losses))
-        single_losses_per_epoch.append(np.mean(single_losses,axis=1))
+        losses_per_epoch.append(mloss.cpu().numpy())
+        print(losses_per_epoch, type(losses_per_epoch))
 
         if epoch % VALDIATION_FREQUENCY == 0:
-            # CUDA support half precision, 
             model.eval()
 
-            iouv = torch.linspace(0.5, 0.55, 1).to(device)  # iou vector for mAP@0.5:0.95
+            iouv = torch.linspace(0.5, 0.55, 1).to(device)  # iou vector mAP@0.5:0.95
             niou = iouv.numel()
 
             seen = 0 
             p, r, f1, mp, mr, map50, map, t0, t1 = 0., 0., 0., 0., 0., 0., 0., 0., 0.
             loss = torch.zeros(3, device=device)
             jdict, stats, ap, ap_class = [], [], [], []
-            val_losses = []
             val_losses_items = []
             for j, (imgs, targets, paths, shapes) in enumerate(tqdm.tqdm(validation_loader)):
                 imgs = imgs.to(device, non_blocking=True)
@@ -301,11 +304,12 @@ if __name__ == '__main__':
 
                 with torch.inference_mode(), torch.cuda.amp.autocast():
                     out, train_out = model(imgs, augment=False) 
+                    
                     gloss, loss_items = compute_loss([x.float() for x in train_out], targets)  
                     loss += loss_items[:3] # box, obj, cls
 
 
-                val_losses.append(gloss.item())
+                mloss_val = (mloss_val * j + loss_items) / (j + 1)  # update mean losses
                 val_losses_items.append((loss.cpu() / len(validation_loader)).numpy())
 
                 # Run NMS
@@ -318,7 +322,6 @@ if __name__ == '__main__':
                     labels = targets[targets[:, 0] == si, 1:]
                     nl = len(labels)
                     tcls = labels[:, 0].tolist() if nl else []  # target class
-                    path = Path(paths[si])
                     seen += 1
 
                     if len(pred) == 0:
@@ -326,7 +329,7 @@ if __name__ == '__main__':
                             stats.append((torch.zeros(0, niou, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tcls))
                         continue
 
-                    # Predictions
+                    # Scale predictions back to original size
                     pred[:, 5] = 0
                     predn = pred.clone()
                     scale_coords(imgs[si].shape[1:], predn[:, :4], shapes[si][0], shapes[si][1])
@@ -337,20 +340,19 @@ if __name__ == '__main__':
                         detected = []
                         tcls_tensor = labels[:, 0]
 
-                        # boxes
+                        # scale coords and further evaluation needs xyxy format
                         tbox = xywh2xyxy(labels[:, 1:5])
                         scale_coords(imgs[si].shape[1:], tbox, shapes[si][0], shapes[si][1])
                     
-                        # Per target class
+                        # per class ['opacity']
                         for cls in torch.unique(tcls_tensor):
                             ti = (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)
                             pi = (cls == pred[:, 5]).nonzero(as_tuple=False).view(-1) 
 
                             # Search for detections
                             if pi.shape[0]:
-                                ious, i = box_iou(predn[pi, :4], tbox[ti]).max(1)  # best ious, indices
+                                ious, i = box_iou(predn[pi, :4], tbox[ti]).max(1)  # get the best ious for the predictions
 
-                                # Append detections
                                 detected_set = set()
                                 for j in (ious > iouv[0]).nonzero(as_tuple=False):
                                     d = ti[i[j]]  
@@ -361,13 +363,12 @@ if __name__ == '__main__':
                                         if len(detected) == nl: 
                                             break
 
-                    # Append statistics (correct, conf, pcls, tcls)
                     stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))
 
 
-            val_losses_per_epoch.append(np.mean(val_losses))
+            val_losses_per_epoch.append(mloss_val.cpu().numpy())
             single_val_losses_per_epoch.append(np.mean(val_losses_items, axis=1))
-            print(f"Validation Loss {np.mean(val_losses)}")
+            print(f"Validation Loss {mloss_val}")
             stats = [np.concatenate(x, 0) for x in zip(*stats)] 
             if len(stats) and stats[0].any():
                 p, r, ap, f1, ap_class = ap_per_class(*stats)
@@ -392,13 +393,11 @@ if __name__ == '__main__':
             else:
                 nt = torch.zeros(1)
 
-            # Print results
             pf = '%20s' + '%12i' * 2 + '%12.3g' * 4 
             print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
 
         # Save losses, models and evaluation results
         if epoch % SAVE_FREQUENCY == 0:
-           # torch.save(model, f"./{model_folder}/yolov5_epoch_{epoch}_full.pt")
             torch.save(model.state_dict(), f"./{model_folder}/yolov5_epoch_{epoch}.pt")
             '''
             torch.save({"model": model.state_dict(),
@@ -408,7 +407,6 @@ if __name__ == '__main__':
             
             np.save(f"{loss_folder}/yolov5_train_loss_{epoch}.np", np.array(losses_per_epoch))
             np.save(f"{loss_folder}/yolov5_val_loss_{epoch}.np", np.array(val_losses_per_epoch))
-            np.save(f"{loss_folder}/yolov5_train_loss_single_{epoch}.np", np.array(single_losses_per_epoch))
             np.save(f"{loss_folder}/yolov5_val_loss_single_{epoch}.np", np.array(val_losses_per_epoch))
             with open(f"{loss_folder}/yolov5_general_test_results_{epoch}.pickle", "wb") as p:
                 pickle.dump(general_test_results, p)

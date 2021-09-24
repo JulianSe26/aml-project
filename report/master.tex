@@ -22,21 +22,21 @@
 \addbibresource{bibliography.bib}
 
 
-\begin{document}
+\begin{document} 
 
 % Disable listing with chapter numbers
 \counterwithout{lstlisting}{chapter}
 \counterwithout{equation}{chapter}
 % CHAPTER CHANGES
 \renewcommand*{\chapterheadstartvskip}{\vspace*{0cm}}
-\renewcommand*{\chapterheadendvskip}{\vspace{2cm}}
+\renewcommand*{\chapterheadendvskip}{\vspace{1cm}}
 
 
 \makeatletter
 \patchcmd{\scr@startchapter}{\if@openright\cleardoublepage\else\clearpage\fi}{}{}{}
 \makeatother
 
-\TitelDerArbeit{SIIM-FISABIO-RSNA COVID-19 Detection}
+\TitelDerArbeit{COVID-19 Detection on Chest X-ray images}
 \AutorDerArbeit{Tobias Richstein (3596554)}
 \ZweiterAutorDerArbeit{Julian Seibel (3601340)}
 \DritterAutorDerArbeit{Torben Krieger (3663391)}

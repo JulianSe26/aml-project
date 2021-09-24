@@ -1,7 +1,7 @@
 import torch
 from torch import optim
 
-NUMBER_EPOCHS = 56
+NUMBER_EPOCHS = 35
 
 CONFIG = {
     "epochs": NUMBER_EPOCHS,

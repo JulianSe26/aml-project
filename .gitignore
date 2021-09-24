@@ -454,3 +454,6 @@ src/prepare
 
 events.out.tfevents.*
 
+# tmp
+**/study/metrics/**
+

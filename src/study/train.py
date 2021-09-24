@@ -26,7 +26,7 @@ batch_size = 35
 # ADJUST TO YOUR NEEDS
 base_data_dir = "/home/tkrieger/var/aml-xrays"
 model_folder = "/home/tkrieger/var/aml-models/study"
-loss_folder = "./losses"
+metrics_folder = "./metrics"
 model_name = "study_resnext101_32x8d"
 '''============================================================'''
 
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     parser.add_argument("--initial_ckpt", default=False, type=bool)
     parser.add_argument("--data_dir", default=base_data_dir, type=str)
     parser.add_argument("--model_dir", default=model_folder, type=str)
-    parser.add_argument("--loss_dir", default=loss_folder, type=str)
+    parser.add_argument("--metrics_dir", default=metrics_folder, type=str)
     parser.add_argument("--board_subdir", default=None, type=str)
     args = parser.parse_args()
     print(args)
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     train_loader, test_loader, train_dataset, _ = prepare_data(args.data_dir, batch_size)
     # Create required directories
     Path(args.model_dir).mkdir(exist_ok=True)
-    Path(args.loss_dir).mkdir(exist_ok=True)
+    Path(args.metrics_dir).mkdir(exist_ok=True)
     device = resolve_device()
 
     model = CovidModel()
@@ -172,9 +172,9 @@ if __name__ == '__main__':
                         "optimizer": optimizer.state_dict(),
                         "scaler": scaler.state_dict(),
                         "scheduler": scheduler.state_dict()}, f"{args.model_dir}/{model_name}_epoch_{epoch}_ckpt.pt")
-            np.save(f"{args.loss_dir}/{model_name}_train_loss_{epoch}.np", np.array(loss_per_epoch))
-            np.save(f"{args.loss_dir}/{model_name}_val_loss_{epoch}.np", np.array(val_loss_per_epoch))
-            with open(f"{args.loss_dir}/{model_name}_general_val_results_{epoch}.pickle", "wb") as p:
+            np.save(f"{args.metrics_dir}/{model_name}_train_loss_{epoch}", np.array(loss_per_epoch))
+            np.save(f"{args.metrics_dir}/{model_name}_val_loss_{epoch}", np.array(val_loss_per_epoch))
+            with open(f"{args.metrics_dir}/{model_name}_general_val_results_{epoch}.pickle", "wb") as p:
                 pickle.dump(test_results_general, p)
 
     writer.close()

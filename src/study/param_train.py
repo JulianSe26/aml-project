@@ -142,7 +142,7 @@ if __name__ == "__main__":
             all_targets = []
             all_validations_losses = []
 
-            for test_i, (images, targets) in enumerate(tqdm(test_loader, desc=f"Testing - ep: {epoch}")):
+            for test_i, (images, targets) in enumerate(tqdm(test_loader, desc=f"Testing  - ep: {epoch}")):
                 images = images.to(device)
                 targets = targets.to(device)
                 logits = model(images)
@@ -160,7 +160,7 @@ if __name__ == "__main__":
             validation_loss_epoch.append(np.mean(all_validations_losses))
             writer.add_scalar(tag="Validation/Loss/Epoch", scalar_value=validation_loss_epoch[-1], global_step=epoch)
             writer.add_scalars(main_tag="Validation/Metrics/Epoch", tag_scalar_dict=validation_results, global_step=epoch)
-            print(f'\nValidation loss: {all_validations_losses[-1]}')
+            print(f'\nValidation loss: {validation_loss_epoch[-1]}')
             print(f'\n{validation_results}')
         # end of a VALIDATION epoch
 

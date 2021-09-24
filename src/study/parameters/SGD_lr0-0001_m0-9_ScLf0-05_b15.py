@@ -13,5 +13,5 @@ CONFIG = {
     "batch_size": 15,
     "optimizer": lambda params: optim.SGD(params, lr=0.0001, momentum=0.9, nesterov=True),
     "scheduler": lambda optimizer: torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lf),
-    "name": "SGD_lr0-0001_m0-9_cos0-05_b15"
+    "name": "SGD_lr0-0001_m0-9_ScLf0-05_b15"
 }

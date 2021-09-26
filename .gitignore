@@ -453,7 +453,3 @@ src/prepare
 **/yolo/ckpt/
 
 events.out.tfevents.*
-
-# tmp
-**/study/metrics/**
-

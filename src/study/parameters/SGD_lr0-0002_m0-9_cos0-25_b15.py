@@ -10,6 +10,6 @@ CONFIG = {
     "scheduler_frequency": 2,
     "batch_size": 15,
     "optimizer": lambda params: optim.SGD(params, lr=LEARNING_RATE, momentum=0.9, nesterov=True),
-    "scheduler": lambda optimizer: torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, NUMBER_EPOCHS, 0.05*LEARNING_RATE),
-    "name": "SGD_lr0-0002_m0-9_cos0-05_b15"
+    "scheduler": lambda optimizer: torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, NUMBER_EPOCHS, 0.25*LEARNING_RATE),
+    "name": "SGD_lr0-0002_m0-9_cos0-25_b15"
 }

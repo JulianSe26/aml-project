@@ -131,3 +131,18 @@ def convert_chunk(chunk: list[Path], search_dir: Path):
         new_path = search_dir / IMAGE_SUBDIR / single_path.with_suffix(".png").relative_to(search_dir)
         new_path.parent.mkdir(parents=True, exist_ok=True)
         pillow_img.save(str(new_path))
+
+
+def append_labels_to_coco(ann_file_path: Path, study_file_path: Path, image_file_path: Path):
+    with open(ann_file_path, 'r') as infile:
+        coco = json.load(infile)
+    study_level = pd.read_csv(study_file_path)
+    image_level = pd.read_csv(image_file_path)
+
+    if 'images' in coco:
+        for img in coco['images']:
+            study_id = image_level[image_level["id"] == img["instance_id"]]["StudyInstanceUID"]
+            img['labels'] = np.squeeze((study_level[study_level["id"] == study_id.values[0] + "_study"].values[:, [1, 2, 3, 4]])).tolist()
+
+    with open(ann_file_path, 'w') as outfile:
+        json.dump(coco, outfile)

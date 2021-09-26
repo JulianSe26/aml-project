@@ -452,3 +452,4 @@ src/prepare
 **/yolo/ckpt_final/
 **/yolo/ckpt/
 
+events.out.tfevents.*

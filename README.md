@@ -1,6 +1,6 @@
 ### Advanced Machine Learning final Project Repository [summer term 2021]
 
-Detect Covid-19 infections by looking at images inspired by [this](https://www.kaggle.com/c/siim-covid19-detection/overview) kaggle challenge.
+Detect Covid-19 infections by looking at images inspired by [this](https://www.kaggle.com/c/siim-covid19-detection/overview) Kaeggle challenge.
 
 
 1. Paper Collection
@@ -22,3 +22,15 @@ Detect Covid-19 infections by looking at images inspired by [this](https://www.k
 *  [NIH datset](https://www.kaggle.com/nih-chest-xrays/data)
 *  [RSNA dataset](https://www.kaggle.com/c/rsna-pneumonia-detection-challenge/data)
 *  [SIIM-COVID19 dataset](https://www.kaggle.com/c/siim-covid19-detection/overview)
+
+
+## What's inside
+
+- [/imgs](/imgs): Several images of model and data evaluations
+- [/report](/report): Latex files
+- [/src](/src): Source files of all models and the app
+
+The `/src` folder has a separate `README` detailing the models
+
+
+By Torben Krieger, Tobias Richstein and Julian Seibel

@@ -17,17 +17,36 @@
     <div class="row">
       <div class="col-md-2"></div>
       <div class="col-md-2 mt-3 mr-3">
-        <div class="row text-center mt-3 mr-3">
-            <div class="col-md-8"><h2>Box</h2></div>
-            <div class="col-md-4"><h2>Scores</h2></div>
+        <div class="row text-center container-fluid">
+            <div class="row text-center mt-3 mr-3">
+                <div class="col-md-8"><h2>Box</h2></div>
+                <div class="col-md-4"><h2>Score</h2></div>
+            </div>
+            <div class="row text-center">
+            {% if boxes is defined %}
+                {% for box, score in zip(boxes, scores) %}
+                    <div class="col-md-8">{{ box }}</div>
+                    <div class="col-md-4">{{ score }}</div>
+                {% endfor %}
+            {% endif %}
+            </div>
         </div>
-        <div class="row text-center">
-        {% if boxes != None %}
-            {% for box, score in zip(boxes, scores) %}
-                <div class="col-md-8">{{ box }}</div>
-                <div class="col-md-4">{{ score }}</div>
-            {% endfor %}
-        {% endif %}
+        <div class="row mt-5">
+            <h2>Study level output</h2>
+            <div class="row text-center mt-3 mr-3">
+                <div class="col-md-3"><h6>Negative</h6></div>
+                <div class="col-md-3"><h6>Typical</h6></div>
+                <div class="col-md-3"><h6>Indeterminate</h6></div>
+                <div class="col-md-3"><h6>Atypical</h6></div>
+            </div>
+            <div class="row text-center">
+            {% if study_out is defined %}
+                <div class="col-md-3">{{ study_out[0][0] }}</div>
+                <div class="col-md-3">{{ study_out[0][1] }}</div>
+                <div class="col-md-3">{{ study_out[0][2] }}</div>
+                <div class="col-md-3">{{ study_out[0][3] }}</div>
+            {% endif %}
+            </div>
         </div>
       </div>
       <div class="col-md-6 mt-5 ml-3 mb-3">

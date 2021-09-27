@@ -48,14 +48,14 @@ To prevent overfitting during training and essentially enlargen our dataset we a
 
 Since we have somewhat limited hardware resources at our disposal in comparison to large scale compute clusters that are often used for such training tasks by researchers, we also apply a method called \textit{Autocasting} to speed up training and allow us to use larger batch sizes. The basis of Autocasting is the ability to use mixed precision during network training. While most frameworks such as PyTorch usually use 32bit floating point numbers (single precision) for all calculations, it has been shown that performing some operations with 16bit representations (half precision) does not penalize accuracy but provides a large speedup since more data can fit in the most often constrained GPU memory and the also constrained data transfer bandwidth can be used more effectively \autocite{micikevicius_mixed_2018}. The GPUs that we have at our disposal also feature special matrix multiplication hardware that works best with half precision numbers, meaning that we profit from mixed precision training in a significant way. The speedup for the ResNeXt training for example was almost twice as fast as before. The decision whether to perform operations at half precision is made automatically by PyTorch when the model is wrapped in an autocasting decorator.
 
-We train the ResNeXt with a batch size of 32 (like in the original paper) and perform 35 epochs. To calculate the loss we use Binary Cross Entropy but with Logits as recommended for mixed precision training which uses the log-sum-exp trick to improve the numerical stability and avoid loss terms that cannot be represented by half precision \autocite{pytorch_team_automatic_nodate}. The loss numbers for the training and validation loss can be seen in \vref{fig:resnet_loss}. It can be seen that in the end some overfit occurs where the train loss keeps decreasing and the validation loss stays mostly constant or even increases very slightly. In the end we still decided to use the model after 35 epochs since the loss figures are very good and it also evaluates very well as will be shown later in chapter \vref{chapter:eval_resnext}.
-
 \begin{figure*}
 	\centering
 	\includegraphics[width=.7\linewidth]{img/loss_backbone_rcnn_35.png}
 	\caption{Loss figures of the ResNeXt training}
 	\label{fig:resnet_loss}
 \end{figure*}
+
+We train the ResNeXt with a batch size of 32 (like in the original paper) and perform 35 epochs. To calculate the loss we use Binary Cross Entropy but with Logits as recommended for mixed precision training which uses the log-sum-exp trick to improve the numerical stability and avoid loss terms that cannot be represented by half precision \autocite{pytorch_team_automatic_nodate}. The loss numbers for the training and validation loss can be seen in \vref{fig:resnet_loss}. It can be seen that in the end some overfit occurs where the train loss keeps decreasing and the validation loss stays mostly constant or even increases very slightly. In the end we still decided to use the model after 35 epochs since the loss figures are very good and it also evaluates very well as will be shown later in chapter \vref{chapter:eval_resnext}.
 
 \subsection*{Training of the Faster R-CNN}
 
@@ -149,7 +149,7 @@ Additionally, the loss graph shows some uncommon patterns which we faced in all 
 
 
 \section{Combining detections}\label{section:combining_detections}
-\sectionauthor{Julian Seibel}
+\sectionauthor{Written by Julian Seibel}
 For our final COVID-19 detection, we decided to get the two described models in an ensemble predictor to combine both advantages of the models and also to create a more stable bounding-box predictor that considers both outputs. Following the approach of \citeauthor{weightedBoxFusion} \autocite{weightedBoxFusion}, we created a weighted box fusion, where we get a final bounding box prediction given the predicted boxes and confidence scores from the \ac{YOLO} and Faster \ac{R-CNN} models.
 
 Each predicted box is added to a list $B$, that is sorted w.r.t. the corresponding confidence scores. Then two new empty lists are created for box clusters $L$ and fused boxes $F$. Each position in $F$ stores the fused box for the corresponding entry $pos$ in $L$. The algorithm then iterates over the predicted boxes in $B$ trying to find a matching box in $F$ based on an \acs{IoU} criterion (e.g. \acs{IoU} > threshold, where in our case the threshold was set to $0.55$). If no match is found, the box from list $B$ is added to $L$ and $F$. In contrast, if a match is found, the box is added to the cluster list $L$ at the corresponding position to the box in $F$. The box coordinates $(x,y)$ and confidence scores $c$ in $F$ will then be recalculated using all boxes accumulated in $L[pos]$ with the fusion equation:
@@ -195,7 +195,7 @@ For taking over the weights of the trained backbone \textit{ResNeXt} a new model
 Due to the usage of the \textit{ResNeXt} the same data augmentation as described in \ref{chapter:rcnn} is required. Additionally we apply the same training augmentations to the SIIM dataset for the study level training. The pre-training on the NIH dataset was done as a multi-label classification. As the study level task implies a multi-class classification task other normalization and loss functions are required. During the training of the \textit{ResNeXt} on the SIIM dataset we use \textit{Softmax} to normalize all outputs to a sum of 1 \autocite{goodfellow2016deep}. As the loss function we use \textit{Cross Entropy}, again for numerical stability we apply the combined PyTorch loss function working on logits. Apart from this the initial setup was similar to the backbone training. This means that \ac{SGD} was used as the optimizer and \textit{Cosine Annealing} for learning rate decay scheduling. 
 
 After a first training run we noticed that even for a decreasing training loss the validation loss starts to increase after few epochs. We identified this generalization error as overfitting and tried to apply following regularization techniques as countermeasures (both separately or combined):
-\begin{itemize}
+\begin{itemize} 
 	\item Adding a \textit{Dropout} layer between the last two fully connected layers and validating different probabilities for dropping output values with $0.5 \leq p \leq 0.7$
 	\item Applying additional training data augmentations or executing them with higher probabilities.
 	\item Using \textit{weight decay} to apply \textit{L2 regularization}
@@ -207,23 +207,23 @@ After a first training run we noticed that even for a decreasing training loss t
 	\boldsymbol{\theta}_{t+1} = \left( 1 - \lambda \right) \boldsymbol{\theta}_{t} - \alpha \nabla \text{Loss}_t \left( \boldsymbol{\theta}_{t} \right)
 \end{align}
 
-We tried several \textit{decay rates} in the range of $[0.00001, 0.3]$ but were unable to regularize the overfitting successfully. Figure \vref{fig:weight-decay} shows the training loss for some of the validated decay rates.
-
-\begin{figure*}
+\begin{figure*}[h!]
 	\centering
 	\includegraphics[width=.7\linewidth]{img/reg_study_weight_decay.png}
 	\caption{Validation losses for different weight decay rates. The runs were stopped early, thus the count of epoch per sample differs.}
 	\label{fig:weight-decay}
 \end{figure*}
 
+We tried several \textit{decay rates} in the range of $[0.00001, 0.3]$ but were unable to regularize the overfitting successfully. Figure \vref{fig:weight-decay} shows the training loss for some of the validated decay rates.
+
 Also the application of additional data augmentation was not successful. Instead the model was unable to improve the training loss for some setups. Besides that the dropout layer had nearly no effect. Due to the usage of a pre-trained model \textit{Dropout} could only be used easily within the custom layers forming the classifier. Applying \textit{Dropout} to other hidden layers of the pre-trained model requires a more complex change to the predefined model. Thus we decided to not try this out.
 As an alternative to the mentioned regularization methods we disabled the weight updates for all layers within the pre-trained model, namely the feature extraction module. Performing updates for the classification layer only and reducing the amount of trainable parameters stopped the overfitting of the model successfully. Still we had some problems with fluctuating validation losses or even increasing training losses after an initial decrease. Thus we performed a manual hyper-parameter search. This was done by altering the training script to read in all parameters from a configuration file and creating a couple of reasonable combinations. We then executed all configurations within a script and compared results later on.
 
-As result we came up with a training and validation loss as shown in figure \ref{fig:study-loss}. Still especially the validation loss is highly volatile and the overall decrease of the loss is relatively small. However compared to other validation losses reported for the hyper-parameter search this configuration reached the minimal validation loss. The training is executed for 58 epochs with a batch size of 15 and a learning rate $l_r = 0.0005$.
-
-\begin{figure*}
+\begin{figure*}[h!]
 	\centering
 	\includegraphics[width=.7\linewidth]{img/loss_study_level_ep58.png}
 	\caption{Training and validation loss for final training of the study level model.}
 	\label{fig:study-loss}
 \end{figure*}
+
+As result we came up with a training and validation loss as shown in figure \ref{fig:study-loss}. Still especially the validation loss is highly volatile and the overall decrease of the loss is relatively small. However compared to other validation losses reported for the hyper-parameter search this configuration reached the minimal validation loss. The training is executed for 58 epochs with a batch size of 15 and a learning rate $l_r = 0.0005$.

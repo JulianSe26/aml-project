@@ -90,6 +90,7 @@ By applying the above mentioned preprocessing steps we reduced the overall size 
 
 For the object detection task on the image-level we need a specific format of annotation to make use of several pre-defined model architectures and tools. This format is specific to the Microsoft \ac{COCO} dataset initially described by \citeauthor{lin_microsoft_2015} in \citeyear{lin_microsoft_2015}. This dataset is one of the largest and most commonly used datasets for object detection, segmentation and captioning tasks. To reuse some pre-trained models and their tools easily and also apply transfer learning for other tasks the custom dataset has to comply to the label format used in the \ac{COCO} dataset.
 
+
 \begin{minipage}{\linewidth}
 	\begin{lstlisting}[language=json,firstnumber=1, caption={Basic COCO annotation format in \autocite{lin_microsoft_2015}.}, captionpos=b, label={lst:coco-sample}]
 {

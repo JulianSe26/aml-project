@@ -202,7 +202,12 @@ After a first training run we noticed that even for an decreasing training loss 
 \end{align}
 We tried several \textit{decay rates} in a range between $[0.00001, 0.3]$ but were unable to regularize the overfitting successfully thereby. Figure \ref{fig:weight-decay} shows the training loss for some of the validated decay rates.
 
-// todo decay overview figure
+\begin{figure*}
+	\centering
+	\includegraphics[width=.7\linewidth]{img/reg_study_weight_decay.png}
+	\caption{Validation losses for different weight decay rates. The runs were stopped early, thus the count of epoch per sample differs.}
+	\label{fig:weight-decay}
+\end{figure*}
 
 Also the application of additional data augmentation was not successfully. Instead the model was even unable to improve the training loss for some setups. Besides that the dropout layer had nearly no effect. Due to the usage of a pre-trained model \textit{Dropout} could only be used easily within the custom layers forming the classifier. Applying \textit{Dropout} to other hidden layers of the pre-trained model requires a more complex change to the predefined model. Thus we decided to not try this out.
 As alternative to the mentioned regularization methods we disabled the weight updates for all layers within the pre-trained model, namely the feature extraction module. Performing updates for the classification layer only and reducing the amount of trainable parameters stopped the overfitting of the model successfully. Still we had some problems with fluctuating validation losses or even increasing training losses after a first decrease. Thus we performed a manual hyper-parameter search. This was done by altering the training script to read in all parameters from a configuration file and creating a couple of reasonable combinations. We then executed all configurations within a script and compared results later on.

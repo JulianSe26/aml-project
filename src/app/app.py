@@ -23,10 +23,12 @@ from rcnn.model import ChestRCNN
 from detection_fusion import EnsembleModel
 from yolo.yolo import Model
 from yolo.utils.general import non_max_suppression
+from study.model import CovidModel
 
 BACKBONE_PATH = os.environ['BACKBONE_PATH'] if 'BACKBONE_PATH' in os.environ else '../resnet/models/resnext101_32x8d_epoch_35.pt'
 RCNN_STATE_DICT = os.environ['RCNN_STATE_DICT'] if 'RCNN_STATE_DICT' in os.environ else '../rcnn/models/fasterrcnn_epoch_23.pt'
 YOLO_FINAL_MODEL_PATH = os.environ['YOLO_FINAL_MODEL_PATH'] if 'YOLO_FINAL_MODEL_PATH' in os.environ else "../yolo/models/yolov5_epoch_26.pt"
+STUDY_STATE_DICT = os.environ['STUDY_STATE_DICT'] if 'STUDY_STATE_DICT' in os.environ else '../study/models/study_resnext_SGD_lr0-0005_m0-9_cos0-05_b15_epoch58.pt'
 
 YOLO_CONFIG_PATH = os.environ['YOLO_CONFIG_PATH'] if 'YOLO_CONFIG_PATH' in os.environ else "../yolo/yolo5l.yaml"
 
@@ -46,6 +48,7 @@ def load_torch_models():
     global fasterRCNN
     global yolo
     global ensemble
+    global study_level
 
     fasterRCNN = ChestRCNN(BACKBONE_PATH).to('cpu')
     fasterRCNN.load_state_dict(torch.load(RCNN_STATE_DICT, map_location=torch.device('cpu')))
@@ -57,6 +60,10 @@ def load_torch_models():
     yolo.eval()
 
     ensemble = EnsembleModel(fasterRcnn=fasterRCNN, yolo=yolo, inference_size=INFERENCE_SIZE, iou_threshold_nms=IOU_THRESHOLD, confidence_threshold_nms=CONFIDENCE_THRESHOLD)
+
+    study_level = CovidModel()
+    study_level.load_state_dict(torch.load(STUDY_STATE_DICT, map_location=torch.device('cpu')))
+    study_level.eval()
 
 def inference_rcnn(img: Image):
 
@@ -132,6 +139,17 @@ def inference_ensemble(img:Image):
 
     return ret_boxes, ret_scores
 
+def inference_study(img:Image):
+
+    tensor_img = rcnn_transforms(img.convert("RGB")).unsqueeze(0)
+
+    with torch.inference_mode():
+        out = study_level(tensor_img)
+
+    print(out)
+
+    return out.detach().tolist()
+
 def resize_boxes(boxes, width_factor, height_factor):
     return [[round(box[0] * width_factor, 4), round(box[1] * height_factor, 4), round(box[2] * width_factor, 4), round(box[3] * height_factor, 4)] for box in boxes]
 
@@ -163,6 +181,8 @@ def inference_form():
     elif model_select == 'ensemble':
         ret_boxes, ret_scores = inference_ensemble(img)
 
+    study_out = inference_study(img)
+
     draw = ImageDraw.Draw(img)
     
     for box in ret_boxes:
@@ -174,19 +194,7 @@ def inference_form():
     img_io.seek(0)
     img = base64.b64encode(img_io.getvalue())
 
-    return render_template('index.html', boxes=ret_boxes, scores=ret_scores, img=img.decode('ascii'))
-
-@app.route("/inference", methods=['POST'])
-def inference_api():
-
-    if 'file' in request.files.keys():
-        img = request.files['file']
-    else:
-        return {'error': 'Request not in correct format. Send an image with the name "file"'}, 400
-
-    ret_boxes, ret_scores = inference_rcnn(Image.open(img))
-
-    return {'boxes': ret_boxes, 'scores': ret_scores}, 200
+    return render_template('index.html', boxes=ret_boxes, scores=ret_scores, img=img.decode('ascii'), study_out=study_out)
 
 print(("* Loading PyTorch models and starting Flask server..."))
 load_torch_models()

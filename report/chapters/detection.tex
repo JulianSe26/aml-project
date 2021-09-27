@@ -200,13 +200,18 @@ After a first training run we noticed that even for an decreasing training loss 
 \begin{align}\label{eq:weight-decay}
 	\boldsymbol{\theta}_{t+1} = \left( 1 - \lambda \right) \boldsymbol{\theta}_{t} - \alpha \nabla \text{Loss}_t \left( \boldsymbol{\theta}_{t} \right)
 \end{align}
-We tried several \textit{decay rates} in a range $[0.00001, 0.3]$ but were unable to regularize the overfitting successfully thereby. Figure \ref{fig:weight-decay} shows the training loss for some of the validated decay rates.
+We tried several \textit{decay rates} in a range between $[0.00001, 0.3]$ but were unable to regularize the overfitting successfully thereby. Figure \ref{fig:weight-decay} shows the training loss for some of the validated decay rates.
 
 // todo decay overview figure
 
-Also the application of additional data augmentation was not successfully. Instead the model was even unable to improve the training loss for some setups. Besides that the dropout layer had nearly no effect. Due to the usage of a pre-trained model \textit{Dropout} could only be used easily within the custom layers forming the classifier. Applying \textit{Dropout} to other hidden layers of the pre-trained model requires a more complex change to the model. Thus we decided to not try this out.
-As alternative to the mentioned regularization methods we disabled the weight updates for all layers within the pre-trained model, the feature extraction module. Performing updates for the classification layer only and reducing the amount of trainable parameters stopped the overfitting of the model successfully. Still we had some problems with fluctuating validation losses or even increasing training losses after a first decrease. Thus we performed a manual hyperparameter search. This was done by altering the training script to read in all parameters from a configuration file and creating a couple of reasonable combinations. We then executed all configurations within a script and compared results later on.
+Also the application of additional data augmentation was not successfully. Instead the model was even unable to improve the training loss for some setups. Besides that the dropout layer had nearly no effect. Due to the usage of a pre-trained model \textit{Dropout} could only be used easily within the custom layers forming the classifier. Applying \textit{Dropout} to other hidden layers of the pre-trained model requires a more complex change to the predefined model. Thus we decided to not try this out.
+As alternative to the mentioned regularization methods we disabled the weight updates for all layers within the pre-trained model, namely the feature extraction module. Performing updates for the classification layer only and reducing the amount of trainable parameters stopped the overfitting of the model successfully. Still we had some problems with fluctuating validation losses or even increasing training losses after a first decrease. Thus we performed a manual hyper-parameter search. This was done by altering the training script to read in all parameters from a configuration file and creating a couple of reasonable combinations. We then executed all configurations within a script and compared results later on.
 
-As result we came up with a training and validation loss as shown in figure \ref{fig:study-loss}. Still especially the validation loss is highly fluctuating and the overall decrease of the loss is relative small. However compared to other validation losses reported for the training of the classification layer only this configuration reached the minimum validation loss. The training is executed for 60 epochs with a batch size of 15 and a learning rate $l_r = 0.0005$.
+As result we came up with a training and validation loss as shown in figure \ref{fig:study-loss}. Still especially the validation loss is highly fluctuating and the overall decrease of the loss is relative small. However compared to other validation losses reported for the hyper-parameter search this configuration reached the minimal validation loss. The training is executed for 58 epochs with a batch size of 15 and a learning rate $l_r = 0.0005$.
 
-// todo loss overview figure
+\begin{figure*}
+	\centering
+	\includegraphics[width=.7\linewidth]{img/loss_study_level_ep58.png}
+	\caption{Training and validation loss for final training of the study level model.}
+	\label{fig:study-loss}
+\end{figure*}

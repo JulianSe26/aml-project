@@ -14,37 +14,39 @@
     <div class="container-fluid text-center mt-5">
         <h1>COVID-19 identification from Chest X-Rays</h1>
     </div>
-    <div class="row">
+    <div class="row w-100">
       <div class="col-md-2"></div>
       <div class="col-md-2 mt-3 mr-3">
-        <div class="row text-center container-fluid">
-            <div class="row text-center mt-3 mr-3">
+        <div class="row text-center container-fluid w-100">
+            <div class="row text-center mt-3 mr-3 w-100">
                 <div class="col-md-8"><h2>Box</h2></div>
                 <div class="col-md-4"><h2>Score</h2></div>
             </div>
-            <div class="row text-center">
+            <div class="row text-center w-100">
             {% if boxes is defined %}
                 {% for box, score in zip(boxes, scores) %}
                     <div class="col-md-8">{{ box }}</div>
-                    <div class="col-md-4">{{ score }}</div>
+                    <div class="col-md-4">{{ "%.2f"|format(score) }}</div>
                 {% endfor %}
             {% endif %}
             </div>
         </div>
         <div class="row mt-5">
-            <h2>Study level output</h2>
-            <div class="row text-center mt-3 mr-3">
+            <div class="row container-fluid text-center w-100">
+                <div class="text-center w-100"><h2>Study level output</h2></div>
+            </div>
+            <div class="row text-center mt-3 mr-3 w-100">
                 <div class="col-md-3"><h6>Negative</h6></div>
                 <div class="col-md-3"><h6>Typical</h6></div>
                 <div class="col-md-3"><h6>Indeterminate</h6></div>
                 <div class="col-md-3"><h6>Atypical</h6></div>
             </div>
-            <div class="row text-center">
+            <div class="row text-center w-100">
             {% if study_out is defined %}
-                <div class="col-md-3">{{ study_out[0][0] }}</div>
-                <div class="col-md-3">{{ study_out[0][1] }}</div>
-                <div class="col-md-3">{{ study_out[0][2] }}</div>
-                <div class="col-md-3">{{ study_out[0][3] }}</div>
+                <div class="col-md-3">{{ "%.2f"|format(study_out[0][0]) }}</div>
+                <div class="col-md-3">{{ "%.2f"|format(study_out[0][1]) }}</div>
+                <div class="col-md-3">{{ "%.2f"|format(study_out[0][2]) }}</div>
+                <div class="col-md-3">{{ "%.2f"|format(study_out[0][3]) }}</div>
             {% endif %}
             </div>
         </div>
@@ -87,10 +89,10 @@
             
             <br>
 
-            {% if img != None %}
-                <img class="cropped" id="xray" src="data:image/PNG;base64,{{ img|safe }}" height="800">
+            {% if img is defined %}
+                <img class="img-responsive" id="xray" src="data:image/PNG;base64,{{ img|safe }}" height="800">
             {% else %}
-                <img class="cropped" id="xray" src="#" height="800">
+                <img class="img-responsive" id="xray" src="#" height="800">
             {% endif %}
             
             <!-- This is pretty nice for multi file uploads but not needed right now -->

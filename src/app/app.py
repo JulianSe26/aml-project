@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template, flash
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import sys
 from gevent.pywsgi import WSGIServer
 from flask_bootstrap import Bootstrap
@@ -146,8 +146,6 @@ def inference_study(img:Image):
     with torch.inference_mode():
         out = study_level(tensor_img)
 
-    print(out)
-
     return out.detach().tolist()
 
 def resize_boxes(boxes, width_factor, height_factor):
@@ -166,8 +164,6 @@ def inference_form():
         flash(alert)
         return render_template('index.html')
 
-    print(request.files['file'].mimetype)
-
     img = Image.open(request.files['file'])
 
     model_select = list(request.form.keys())[0]
@@ -185,8 +181,9 @@ def inference_form():
 
     draw = ImageDraw.Draw(img)
     
-    for box in ret_boxes:
+    for i, box in enumerate(ret_boxes):
         draw.rectangle(box, outline="#FF0000", width=5)
+        draw.text((box[0]+20, box[1]), str(i+1), fill="#FF0000", font=ImageFont.truetype("./Arial.ttf", 100))
 
     img_io = io.BytesIO()
 

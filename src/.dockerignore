@@ -9,7 +9,9 @@
 **/*.json
 **/*.png
 **/*.jpg
+**/*.ipynb
 
 !**/resnext101_32x8d_epoch_35.pt
 !**/fasterrcnn_epoch_23.pt
 !**/yolov5_epoch_26.pt
+!**/study_resnext_SGD_lr0-0005_m0-9_cos0-05_b15_epoch58.pt

@@ -1,8 +1,8 @@
 flask==1.1.2
 flask-httpauth==4.4.0
 bootstrap-flask==1.7.0
-torch==1.9.0
-torchvision==0.10.0
+torch==1.9.0+cpu
+torchvision==0.10.0+cpu
 gevent
 pillow==8.3.1
 timm
@@ -11,3 +11,4 @@ seaborn
 requests
 tqdm
 pyyaml
+-f https://download.pytorch.org/whl/torch_stable.html

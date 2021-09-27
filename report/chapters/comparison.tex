@@ -71,3 +71,33 @@ To conclude this section, we showed that both models perform well on the task of
 
 \section{Evaluation of Study-Level Model}
 \sectionauthor{Written by Torben Krieger}
+The training of the image classification model was not straight forward and even after various optimizations the validation loss fluctuated. Figure \ref{fig:study-validation-metrics} shows Accuracy, Precision, Recall and F1 score for the performed validations during training. Although all metrics are increasing over the training time, the slope of the increase is small. The total difference between the starting values and the metrics after 58 epochs is limited. The Precision metric shows most fluctuations, one of the highest values was already reached within the second epoch. Only within the last quarter of the training the fluctuation seems to be lower. One reason for less fluctuation at the end of the training could be the used \textit{Cosine Annealing}, therefore the smaller learning rate prevents to big updates.
+\begin{figure*}
+	\centering
+	\includegraphics[width=.7\linewidth]{img/test_metrics_study_58.png}
+	\caption{Validation metrics of the classification model during training.}
+	\label{fig:study-validation-metrics}
+\end{figure*}
+
+After the training a test of the image classification model was executed using a test set. The final metrics for that test could be found in table \ref{table:study-results}. Although the metrics are better as the results for the initial pre-training on the NIH dataset we have to stress here that the classification was done for four classes only. The metrics include also the \ac{mAP} which is quite uncommon for classification tasks. Reasons to include it here is that the submissions of the Kaggle Challenge are rated using \ac{mAP}@50 for both, the detection and classification task, in a combined fashion. The formal submission file has to provide a pre-defined dummy bounding box for each study-level classification. The \ac{IoU} threshold of 50\% is therefore irrelevant for the study task and the metric simplifies to simple \ac{mAP}. The calculation of the \ac{mAP} value for our test allows us to compare our results with competitors of the challenge without doing a formal submission. As reference, the first place of the challenge reported a \ac{mAP} of 0.598 for the classification task only \autocite{SIIMFirstPlace}. However they are using an ensemble of models with greater input sizes and performed pre-training on several other datasets as well as specifically for detection of normal pneumonia first. Still it has to be noted that the \ac{mAP} values reported by the competitors were calculated on the hidden held-out dataset of the challenge.
+\begin{table}
+	\begin{tabular}{l|l}
+		&    Study-Level Model  \\ \hline
+		Accuracy 		& \textbf{0.669} \\
+		mean Recall		& \textbf{0.495} \\
+		mean Precision	& \textbf{0.541} \\
+		F1-score		& \textbf{0.482} \\
+		mAP 	    	& \textbf{0.405} \\
+	\end{tabular}
+	\centering
+	\caption{Test metrics for the image classification model.}
+	\label{table:study-results}
+\end{table}
+Figure \ref{fig:study-confusion-matrix} contains the confusion matrix for the test run. It is observable that our model classifies most images as \textit{Typical}. Besides this the class \textit{Negative} is classified often. The two remaining classes \textit{Indeterminate} or \textit{Atypical} are predicted seldom. By comparing with section \ref{data:siim} it is detectable that this roughly maps to the imbalance of the SIIM dataset. Thus over sampling the dataset or weighting of the loss function for underrepresented classes would be the next attempts to improve the classification. However we did not had the time to test these approaches. Apart from this the confusion matrix indicates that most images of the classes \textit{Typical} and \textit{Negative} were predicted correctly.
+\begin{figure*}
+	\centering
+	\includegraphics[width=.7\linewidth]{img/confusion_study_58.png}
+	\caption{Confusion matrix for the image level classification.}
+	\label{fig:study-confusion-matrix}
+\end{figure*}
+Closing this section we have to conclude that our image classification model not meets the expectations we had. However at least for the two most important classes out of the four classes a acceptable classification performance is observable. Which means that our model is at least somehow able to tackle the underlying problem to detect COVID-19. Possible improvements or alternatives will be discussed in chapter \ref{chapter:conclusion}.

@@ -11,8 +11,8 @@ from utils import resolve_device, calculate_metrics, prepare_data
 
 TEST_CONFIG = {
     "data_dir": "/home/tkrieger/var/aml-xrays",
-    "checkpoint": "/home/tkrieger/var/aml-models/study/b35_lr0-0001/study_resnext_b35_lr0-0001_epoch_55.pt",
-    "metrics_dir": "./metrics/b35_lr0-0001/",
+    "checkpoint": "/home/tkrieger/var/aml-models/study/SGD_lr0-0005_m0-9_cos0-05_b15/study_resnext_SGD_lr0-0005_m0-9_cos0-05_b15_epoch58.pt",
+    "metrics_dir": "./metrics/SGD_lr0-0005_m0-9_cos0-05_b15/",
     "random_state": 55,
 }
 

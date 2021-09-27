@@ -3,7 +3,7 @@ from torch import optim
 
 LEARNING_RATE = 0.0005
 
-NUMBER_EPOCHS = 60
+NUMBER_EPOCHS = 58
 
 CONFIG = {
     "epochs": NUMBER_EPOCHS,

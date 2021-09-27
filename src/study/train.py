@@ -14,12 +14,12 @@ from model import CovidModel
 from src.study.utils import calculate_metrics, resolve_device, prepare_data
 
 '''================Train Configuration========================='''
-number_epochs = 55
+number_epochs = 58
 save_frequency = 2          # in epochs
 test_frequency = 1          # in epochs
 scheduler_frequency = 2     # in epochs
 print_loss_frequency = 500  # in iterations
-batch_size = 35
+batch_size = 15
 '''============================================================'''
 
 '''=================Misc Configuration========================='''
@@ -29,13 +29,6 @@ model_folder = "/home/tkrieger/var/aml-models/study"
 metrics_folder = "./metrics"
 model_name = "study_resnext101_32x8d"
 '''============================================================'''
-
-# todo structure
-# overfitting?
-# - super sample class in-balance with data loading
-
-# --> calculate map
-
 
 if __name__ == '__main__':
 
@@ -64,7 +57,7 @@ if __name__ == '__main__':
     print(model)
 
     # optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, nesterov=True)
+    optimizer = optim.SGD(model.parameters(), lr=0.0005, momentum=0.9, nesterov=True)
     # according to doi:10.1097/RTI.0000000000000541 classes are mutual exclusive
     criterion = nn.CrossEntropyLoss().to(device)
     scaler = torch.cuda.amp.GradScaler()

@@ -172,7 +172,7 @@ If all predicted boxes in $B$ are processed, confidence scores in $F$ will be re
 \end{align}
 
 In our final version, we set the weights for the box fusion $w_{fusion} = (1,1)$ meaning that each model contributes the same to the final prediction.
-As fusion-criteria we set an \ac{IoU}-threshold for both predictions to $IoU_{fusion} = 0.55$ which was also the best experienced parameter value described in the original paper \autocite{weightedBoxFusion}. In a last step, we do again non maximum suppression of the fusion boxes to obtain our final ensemble result. 
+As the fusion criterion we set an \ac{IoU}-threshold for both predictions to $IoU_{fusion} = 0.55$ which was also the best experienced parameter value described in the original paper \autocite{weightedBoxFusion}. In a last step, we do again non maximum suppression of the fusion boxes to obtain our final ensemble result. 
 We did not apply any training process to the ensemble model, but it would be interesting to train the ensemble approach in an end to end fashion. However, we do not have the computational resources available to jointly train both detection models.
 
 

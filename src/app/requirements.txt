@@ -4,7 +4,7 @@ bootstrap-flask==1.7.0
 torch==1.9.0+cpu
 torchvision==0.10.0+cpu
 gevent
-pillow==8.3.1
+pillow
 timm
 ensemble-boxes==1.0.7
 seaborn
